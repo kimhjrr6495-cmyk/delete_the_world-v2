@@ -1,0 +1,1771 @@
+{
+  "generatedAt": "2026-10-01T17:18:46.253Z",
+  "bot": "priority-input-v2",
+  "sourceHash": "70dda9e3d9eb8b70",
+  "policy": "power",
+  "dt": 0.05,
+  "elapsedSeconds": 290.22,
+  "limitations": [
+    "Perfect target knowledge and instantaneous cursor movement.",
+    "No manual Final RECORD; SCREEN CUT taps default horizontal.",
+    "One fixed branch/modifier policy and greedy growth decisions.",
+    "No runtime combat parameter overrides."
+  ],
+  "results": [
+    {
+      "core": "overcharge",
+      "mode": "expedition",
+      "seed": 211029,
+      "policy": "power",
+      "won": false,
+      "seconds": 290.6,
+      "integrity": 0,
+      "minimumIntegrity": 0,
+      "level": 26,
+      "kills": 517,
+      "bossKills": [
+        "archivist"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": false,
+          "hp": 1970,
+          "maxHp": 4675
+        }
+      },
+      "evolution": [
+        "overcharge:1",
+        "hole:0"
+      ],
+      "final": null,
+      "skillsUsed": [
+        "overcharge:28",
+        "hole:15"
+      ],
+      "hybrid": "orbit_relay",
+      "methods": [
+        "event_horizon",
+        "conductive_scar",
+        "alternating_circuit",
+        "after_cast"
+      ],
+      "relics": [
+        "hollow_crown",
+        "anchor_heart"
+      ],
+      "cause": "채널링으로 현실 고정점이 붕괴했습니다.",
+      "damage": {
+        "CHAIN": 18382.251470196763,
+        "INFECTION": 0,
+        "SINGULARITY": 45412.95476042876,
+        "SWARM": 0,
+        "IMPACT": 32924.03498122188,
+        "CASTER": 12070.440034941861
+      },
+      "chosen": [
+        "overcharge_branch_fork",
+        "overcharge_modifier_capacitor",
+        "chain_recharge",
+        "chain_voltage",
+        "chain_recharge",
+        "chain_voltage",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "orbit_relay",
+        "chain_recharge",
+        "chain_voltage",
+        "chain_voltage",
+        "chain_voltage",
+        "chain_recharge",
+        "chain_recharge",
+        "elite_seal",
+        "caster_flow",
+        "overcharge_evolution_1",
+        "hollow_crown",
+        "event_horizon",
+        "anchor_heart",
+        "gravity_depth",
+        "caster_flow",
+        "gravity_depth",
+        "time_capsule_replace_0",
+        "conductive_scar",
+        "caster_payload",
+        "alternating_circuit",
+        "hollow_crown_replace_0",
+        "impact_force",
+        "after_cast"
+      ]
+    },
+    {
+      "core": "bomb",
+      "mode": "expedition",
+      "seed": 211029,
+      "policy": "power",
+      "won": true,
+      "seconds": 412.3,
+      "integrity": 50.1,
+      "minimumIntegrity": 19,
+      "level": 25,
+      "kills": 446,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "bomb:3",
+        "seed:0"
+      ],
+      "final": "bomb",
+      "skillsUsed": [
+        "bomb:32",
+        "seed:35"
+      ],
+      "hybrid": "patient_zero_strike",
+      "methods": [
+        "overkill",
+        "spore_census",
+        "patient_zero",
+        "precision_window"
+      ],
+      "relics": [
+        "lens",
+        "anchor_heart"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 24735.24247178918,
+        "SINGULARITY": 0,
+        "SWARM": 0,
+        "IMPACT": 79593.22577506915,
+        "CASTER": 17660.276988557078
+      },
+      "chosen": [
+        "bomb_branch_compression",
+        "bomb_modifier_delayed_return",
+        "impact_force",
+        "overkill",
+        "swarm_support",
+        "impact_force",
+        "impact_force",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "patient_zero_strike",
+        "chain_recharge",
+        "gravity_depth",
+        "caster_payload",
+        "elite_seal",
+        "spore_census",
+        "bomb_evolution_1",
+        "hollow_crown",
+        "patient_zero",
+        "precision_window",
+        "infection_potency",
+        "anchor_heart",
+        "time_capsule_replace_0",
+        "infection_potency",
+        "bomb_evolution_2",
+        "impact_force",
+        "lens_replace_0",
+        "emergency_patch",
+        "swarm_support",
+        "bomb_evolution_3",
+        "impact_critical",
+        "impact_force",
+        "impact_critical"
+      ]
+    },
+    {
+      "core": "hole",
+      "mode": "expedition",
+      "seed": 211029,
+      "policy": "power",
+      "won": false,
+      "seconds": 355.1,
+      "integrity": 0,
+      "minimumIntegrity": 0,
+      "level": 27,
+      "kills": 531,
+      "bossKills": [
+        "archivist",
+        "conductor"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        }
+      },
+      "evolution": [
+        "hole:2",
+        "seed:0"
+      ],
+      "final": null,
+      "skillsUsed": [
+        "hole:23",
+        "seed:29"
+      ],
+      "hybrid": "quarantine_collapse",
+      "methods": [
+        "orbit_shear",
+        "event_horizon",
+        "patient_zero",
+        "spore_census"
+      ],
+      "relics": [
+        "lens",
+        "anchor_heart"
+      ],
+      "cause": "채널링으로 현실 고정점이 붕괴했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 37594.02268244118,
+        "SINGULARITY": 46824.541997579254,
+        "SWARM": 0,
+        "IMPACT": 30033.595280706297,
+        "CASTER": 15696.503170812266
+      },
+      "chosen": [
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "orbit_shear",
+        "event_horizon",
+        "chain_recharge",
+        "gravity_depth",
+        "caster_payload",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "quarantine_collapse",
+        "gravity_depth",
+        "chain_voltage",
+        "gravity_depth",
+        "gravity_depth",
+        "infection_potency",
+        "infection_potency",
+        "elite_seal",
+        "hollow_crown",
+        "patient_zero",
+        "hole_evolution_1",
+        "infection_potency",
+        "infection_potency",
+        "spore_census",
+        "anchor_heart",
+        "time_capsule_replace_0",
+        "chain_recharge",
+        "chain_voltage",
+        "gravity_depth",
+        "lens_replace_0",
+        "caster_payload",
+        "hole_evolution_2",
+        "chain_recharge",
+        "chain_recharge"
+      ]
+    },
+    {
+      "core": "cut",
+      "mode": "expedition",
+      "seed": 211029,
+      "policy": "power",
+      "won": true,
+      "seconds": 404.5,
+      "integrity": 90,
+      "minimumIntegrity": 88.4,
+      "level": 33,
+      "kills": 924,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "cut:3",
+        "hole:0"
+      ],
+      "final": "cut",
+      "skillsUsed": [
+        "cut:47",
+        "hole:36"
+      ],
+      "hybrid": "echo_order",
+      "methods": [
+        "after_cast",
+        "orbit_shear",
+        "alternating_circuit",
+        "event_horizon"
+      ],
+      "relics": [
+        "anchor_heart",
+        "hollow_crown"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 68.93610330919526,
+        "INFECTION": 0,
+        "SINGULARITY": 100459.02769346749,
+        "SWARM": 0,
+        "IMPACT": 43611.693922582475,
+        "CASTER": 66976.14957719829
+      },
+      "chosen": [
+        "cut_branch_razor",
+        "cut_modifier_rupture_edge",
+        "after_cast",
+        "infection_potency",
+        "caster_payload",
+        "caster_payload",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "caster_payload",
+        "caster_flow",
+        "caster_payload",
+        "caster_flow",
+        "chain_voltage",
+        "caster_flow",
+        "impact_force",
+        "cut_evolution_1",
+        "elite_seal",
+        "caster_flow",
+        "anchor_heart",
+        "caster_payload",
+        "hollow_crown",
+        "orbit_shear",
+        "alternating_circuit",
+        "chain_recharge",
+        "time_capsule_replace_0",
+        "event_horizon",
+        "caster_flow",
+        "infection_potency",
+        "infection_potency",
+        "cut_evolution_2",
+        "anchor_heart_replace_0",
+        "emergency_patch",
+        "impact_force",
+        "emergency_patch",
+        "cut_evolution_3",
+        "chain_recharge",
+        "chain_voltage",
+        "echo_order",
+        "gravity_depth",
+        "chain_voltage"
+      ]
+    },
+    {
+      "core": "orbital",
+      "mode": "expedition",
+      "seed": 211029,
+      "policy": "power",
+      "won": true,
+      "seconds": 418.5,
+      "integrity": 89.5,
+      "minimumIntegrity": 57.8,
+      "level": 28,
+      "kills": 590,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "orbital:3",
+        "seed:0"
+      ],
+      "final": "orbital",
+      "skillsUsed": [
+        "orbital:34",
+        "seed:38"
+      ],
+      "hybrid": "parasite_hive",
+      "methods": [
+        "patient_zero",
+        "spore_census",
+        "relay_beacon",
+        "after_cast",
+        "target_lease"
+      ],
+      "relics": [
+        "hollow_crown",
+        "anchor_heart"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 45532.60643551449,
+        "SINGULARITY": 0,
+        "SWARM": 60897.57420379362,
+        "IMPACT": 34768.821137629086,
+        "CASTER": 15063.671941437344
+      },
+      "chosen": [
+        "orbital_branch_hunter",
+        "orbital_modifier_incendiary_fuel",
+        "swarm_payload",
+        "gravity_depth",
+        "swarm_payload",
+        "chain_recharge",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "parasite_hive",
+        "patient_zero",
+        "spore_census",
+        "swarm_payload",
+        "caster_payload",
+        "elite_seal",
+        "swarm_payload",
+        "swarm_clock",
+        "chain_recharge",
+        "orbital_evolution_1",
+        "swarm_payload",
+        "caster_payload",
+        "anchor_heart",
+        "caster_flow",
+        "time_capsule_replace_0",
+        "relay_beacon",
+        "caster_flow",
+        "hollow_crown_replace_0",
+        "chain_voltage",
+        "orbital_evolution_2",
+        "after_cast",
+        "caster_flow",
+        "orbital_evolution_3",
+        "gravity_depth",
+        "infection_potency",
+        "caster_payload",
+        "target_lease"
+      ]
+    },
+    {
+      "core": "seed",
+      "mode": "expedition",
+      "seed": 211029,
+      "policy": "power",
+      "won": false,
+      "seconds": 239.1,
+      "integrity": 0,
+      "minimumIntegrity": 0,
+      "level": 21,
+      "kills": 313,
+      "bossKills": [
+        "archivist"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        }
+      },
+      "evolution": [
+        "seed:1",
+        "hole:0"
+      ],
+      "final": null,
+      "skillsUsed": [
+        "seed:24",
+        "hole:11"
+      ],
+      "hybrid": "quarantine_collapse",
+      "methods": [
+        "patient_zero",
+        "event_horizon",
+        "spore_census",
+        "orbit_shear"
+      ],
+      "relics": [
+        "time_capsule",
+        "anchor_heart"
+      ],
+      "cause": "채널링으로 현실 고정점이 붕괴했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 17674.817844282272,
+        "SINGULARITY": 23688.77295599586,
+        "SWARM": 0,
+        "IMPACT": 14638.838599253424,
+        "CASTER": 11112.415589899363
+      },
+      "chosen": [
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "infection_potency",
+        "patient_zero",
+        "infection_potency",
+        "impact_force",
+        "infection_potency",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "quarantine_collapse",
+        "event_horizon",
+        "infection_potency",
+        "infection_potency",
+        "spore_census",
+        "orbit_shear",
+        "elite_seal",
+        "seed_evolution_1",
+        "caster_payload",
+        "swarm_support",
+        "hollow_crown",
+        "chain_recharge",
+        "chain_voltage",
+        "anchor_heart",
+        "time_capsule_replace_0",
+        "gravity_depth"
+      ]
+    },
+    {
+      "core": "overcharge",
+      "mode": "expedition",
+      "seed": 42,
+      "policy": "power",
+      "won": false,
+      "seconds": 298.2,
+      "integrity": 0,
+      "minimumIntegrity": 0,
+      "level": 26,
+      "kills": 530,
+      "bossKills": [
+        "archivist"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": false,
+          "hp": 1231,
+          "maxHp": 4675
+        }
+      },
+      "evolution": [
+        "overcharge:1",
+        "hole:0"
+      ],
+      "final": null,
+      "skillsUsed": [
+        "overcharge:27",
+        "hole:15"
+      ],
+      "hybrid": "orbit_relay",
+      "methods": [
+        "origin_echo",
+        "conductive_scar",
+        "orbit_shear"
+      ],
+      "relics": [
+        "time_capsule",
+        "hollow_crown"
+      ],
+      "cause": "채널링으로 현실 고정점이 붕괴했습니다.",
+      "damage": {
+        "CHAIN": 20110.01744391842,
+        "INFECTION": 0,
+        "SINGULARITY": 50009.5922835188,
+        "SWARM": 0,
+        "IMPACT": 34492.34742989121,
+        "CASTER": 12569.780876265337
+      },
+      "chosen": [
+        "overcharge_branch_fork",
+        "overcharge_modifier_capacitor",
+        "chain_voltage",
+        "chain_voltage",
+        "chain_recharge",
+        "chain_recharge",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "orbit_relay",
+        "chain_voltage",
+        "chain_voltage",
+        "chain_recharge",
+        "gravity_depth",
+        "chain_voltage",
+        "chain_recharge",
+        "stable_supply",
+        "chain_recharge",
+        "overcharge_evolution_1",
+        "impact_force",
+        "anchor_heart",
+        "origin_echo",
+        "infection_potency",
+        "conductive_scar",
+        "hollow_crown",
+        "caster_payload",
+        "orbit_shear",
+        "infection_potency",
+        "caster_flow",
+        "time_capsule_replace_0",
+        "emergency_patch"
+      ]
+    },
+    {
+      "core": "bomb",
+      "mode": "expedition",
+      "seed": 42,
+      "policy": "power",
+      "won": false,
+      "seconds": 363.3,
+      "integrity": 0,
+      "minimumIntegrity": 0,
+      "level": 30,
+      "kills": 676,
+      "bossKills": [
+        "archivist",
+        "conductor"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": false,
+          "hp": 13200,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "bomb:3",
+        "hole:0"
+      ],
+      "final": "bomb",
+      "skillsUsed": [
+        "bomb:29",
+        "hole:20"
+      ],
+      "hybrid": null,
+      "methods": [
+        "overkill",
+        "precision_window",
+        "orbit_shear",
+        "event_horizon",
+        "alternating_circuit",
+        "after_cast"
+      ],
+      "relics": [
+        "lens",
+        "anchor_heart"
+      ],
+      "cause": "채널링으로 현실 고정점이 붕괴했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 0,
+        "SINGULARITY": 67590.91845603684,
+        "SWARM": 0,
+        "IMPACT": 72549.00916143309,
+        "CASTER": 16883.26021205904
+      },
+      "chosen": [
+        "bomb_branch_compression",
+        "bomb_modifier_delayed_return",
+        "caster_payload",
+        "chain_voltage",
+        "overkill",
+        "chain_voltage",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "impact_force",
+        "precision_window",
+        "impact_force",
+        "infection_potency",
+        "impact_force",
+        "impact_force",
+        "impact_force",
+        "elite_seal",
+        "caster_payload",
+        "bomb_evolution_1",
+        "orbit_shear",
+        "hollow_crown",
+        "event_horizon",
+        "impact_critical",
+        "anchor_heart",
+        "chain_voltage",
+        "time_capsule_replace_0",
+        "gravity_depth",
+        "impact_critical",
+        "gravity_depth",
+        "integrity_buffer",
+        "lens_replace_0",
+        "bomb_evolution_2",
+        "infection_potency",
+        "caster_flow",
+        "alternating_circuit",
+        "bomb_evolution_3",
+        "integrity_buffer",
+        "after_cast"
+      ]
+    },
+    {
+      "core": "hole",
+      "mode": "expedition",
+      "seed": 42,
+      "policy": "power",
+      "won": false,
+      "seconds": 202.5,
+      "integrity": 0,
+      "minimumIntegrity": 0,
+      "level": 17,
+      "kills": 244,
+      "bossKills": [],
+      "bosses": {
+        "archivist": {
+          "killed": false,
+          "hp": 370,
+          "maxHp": 3190.0000000000005
+        }
+      },
+      "evolution": [
+        "hole:0",
+        "seed:0"
+      ],
+      "final": null,
+      "skillsUsed": [
+        "hole:12",
+        "seed:14"
+      ],
+      "hybrid": "quarantine_collapse",
+      "methods": [
+        "orbit_shear",
+        "event_horizon",
+        "spore_census",
+        "patient_zero"
+      ],
+      "relics": [
+        "anchor_heart"
+      ],
+      "cause": "채널링으로 현실 고정점이 붕괴했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 8853.704726864506,
+        "SINGULARITY": 17578.80965508431,
+        "SWARM": 0,
+        "IMPACT": 12156.377616533468,
+        "CASTER": 8362.792679428734
+      },
+      "chosen": [
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "orbit_shear",
+        "event_horizon",
+        "chain_voltage",
+        "gravity_depth",
+        "chain_voltage",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "quarantine_collapse",
+        "infection_potency",
+        "impact_force",
+        "spore_census",
+        "patient_zero",
+        "gravity_depth",
+        "elite_seal",
+        "anchor_heart",
+        "swarm_support"
+      ]
+    },
+    {
+      "core": "cut",
+      "mode": "expedition",
+      "seed": 42,
+      "policy": "power",
+      "won": true,
+      "seconds": 398.3,
+      "integrity": 90,
+      "minimumIntegrity": 89.6,
+      "level": 26,
+      "kills": 579,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "cut:3",
+        "seed:0"
+      ],
+      "final": "cut",
+      "skillsUsed": [
+        "cut:43",
+        "seed:43"
+      ],
+      "hybrid": "delayed_script",
+      "methods": [
+        "after_cast"
+      ],
+      "relics": [
+        "hollow_crown",
+        "anchor_heart"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 30292.626814292056,
+        "SINGULARITY": 0,
+        "SWARM": 0,
+        "IMPACT": 40977.269499497925,
+        "CASTER": 65028.37328665047
+      },
+      "chosen": [
+        "cut_branch_razor",
+        "cut_modifier_rupture_edge",
+        "after_cast",
+        "infection_potency",
+        "caster_payload",
+        "impact_force",
+        "caster_payload",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "delayed_script",
+        "chain_voltage",
+        "caster_flow",
+        "gravity_depth",
+        "cut_evolution_1",
+        "caster_payload",
+        "caster_payload",
+        "elite_seal",
+        "caster_flow",
+        "hollow_crown",
+        "anchor_heart",
+        "caster_payload",
+        "caster_flow",
+        "time_capsule_replace_0",
+        "chain_recharge",
+        "caster_flow",
+        "cut_evolution_2",
+        "hollow_crown_replace_0",
+        "impact_force",
+        "infection_potency",
+        "cut_evolution_3",
+        "chain_recharge",
+        "chain_recharge",
+        "caster_flow"
+      ]
+    },
+    {
+      "core": "orbital",
+      "mode": "expedition",
+      "seed": 42,
+      "policy": "power",
+      "won": true,
+      "seconds": 411.3,
+      "integrity": 65.6,
+      "minimumIntegrity": 65.6,
+      "level": 28,
+      "kills": 623,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "orbital:3",
+        "seed:0"
+      ],
+      "final": "orbital",
+      "skillsUsed": [
+        "orbital:32",
+        "seed:36"
+      ],
+      "hybrid": "parasite_hive",
+      "methods": [
+        "relay_beacon",
+        "target_lease",
+        "spore_census",
+        "patient_zero"
+      ],
+      "relics": [
+        "hollow_crown",
+        "swarm_clock"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 37584.75297374808,
+        "SINGULARITY": 0,
+        "SWARM": 71595.06900329227,
+        "IMPACT": 33796.15105924193,
+        "CASTER": 17633.17957105795
+      },
+      "chosen": [
+        "orbital_branch_hunter",
+        "orbital_modifier_incendiary_fuel",
+        "relay_beacon",
+        "swarm_payload",
+        "swarm_payload",
+        "infection_potency",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "parasite_hive",
+        "swarm_payload",
+        "chain_voltage",
+        "gravity_depth",
+        "target_lease",
+        "swarm_payload",
+        "elite_seal",
+        "swarm_payload",
+        "hollow_crown",
+        "orbital_evolution_1",
+        "impact_force",
+        "swarm_clock",
+        "caster_flow",
+        "time_capsule_replace_0",
+        "infection_potency",
+        "chain_voltage",
+        "gravity_depth",
+        "hollow_crown_replace_0",
+        "spore_census",
+        "orbital_evolution_2",
+        "chain_recharge",
+        "caster_payload",
+        "orbital_evolution_3",
+        "infection_potency",
+        "chain_recharge",
+        "patient_zero",
+        "gravity_depth"
+      ]
+    },
+    {
+      "core": "seed",
+      "mode": "expedition",
+      "seed": 42,
+      "policy": "power",
+      "won": true,
+      "seconds": 401.2,
+      "integrity": 20.3,
+      "minimumIntegrity": 16.4,
+      "level": 32,
+      "kills": 802,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "seed:3",
+        "hole:0"
+      ],
+      "final": "seed",
+      "skillsUsed": [
+        "seed:45",
+        "hole:24"
+      ],
+      "hybrid": "quarantine_collapse",
+      "methods": [
+        "patient_zero",
+        "spore_census",
+        "event_horizon",
+        "overkill",
+        "after_cast",
+        "orbit_shear",
+        "alternating_circuit",
+        "precision_window"
+      ],
+      "relics": [
+        "hollow_crown",
+        "anchor_heart"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 48310.422520664506,
+        "SINGULARITY": 68341.22783675807,
+        "SWARM": 0,
+        "IMPACT": 64405.030315133525,
+        "CASTER": 19730.36429122687
+      },
+      "chosen": [
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "chain_recharge",
+        "patient_zero",
+        "infection_potency",
+        "infection_potency",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "quarantine_collapse",
+        "spore_census",
+        "infection_potency",
+        "infection_potency",
+        "infection_potency",
+        "impact_force",
+        "caster_payload",
+        "seed_evolution_1",
+        "impact_force",
+        "elite_seal",
+        "impact_force",
+        "hollow_crown",
+        "anchor_heart",
+        "event_horizon",
+        "caster_flow",
+        "overkill",
+        "time_capsule_replace_0",
+        "caster_flow",
+        "after_cast",
+        "orbit_shear",
+        "alternating_circuit",
+        "hollow_crown_replace_0",
+        "precision_window",
+        "chain_recharge",
+        "seed_evolution_2",
+        "emergency_patch",
+        "impact_force",
+        "caster_flow",
+        "gravity_depth",
+        "seed_evolution_3",
+        "chain_recharge"
+      ]
+    },
+    {
+      "core": "overcharge",
+      "mode": "expedition",
+      "seed": 6001,
+      "policy": "power",
+      "won": true,
+      "seconds": 402.8,
+      "integrity": 69.1,
+      "minimumIntegrity": 38.8,
+      "level": 32,
+      "kills": 856,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "overcharge:3",
+        "hole:0"
+      ],
+      "final": "overcharge",
+      "skillsUsed": [
+        "overcharge:39",
+        "hole:25"
+      ],
+      "hybrid": "orbit_relay",
+      "methods": [
+        "orbit_shear",
+        "after_cast",
+        "alternating_circuit",
+        "origin_echo",
+        "event_horizon"
+      ],
+      "relics": [
+        "hollow_crown",
+        "anchor_heart"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 52338.99700578432,
+        "INFECTION": 0,
+        "SINGULARITY": 81409.28505312365,
+        "SWARM": 0,
+        "IMPACT": 51524.81783313311,
+        "CASTER": 18682.739120938
+      },
+      "chosen": [
+        "overcharge_branch_fork",
+        "overcharge_modifier_capacitor",
+        "chain_voltage",
+        "chain_recharge",
+        "chain_voltage",
+        "chain_voltage",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "orbit_relay",
+        "chain_voltage",
+        "chain_voltage",
+        "infection_potency",
+        "chain_recharge",
+        "chain_recharge",
+        "overcharge_evolution_1",
+        "chain_recharge",
+        "elite_seal",
+        "caster_payload",
+        "hollow_crown",
+        "chain_recharge",
+        "caster_payload",
+        "anchor_heart",
+        "orbit_shear",
+        "caster_payload",
+        "crossed_wires_replace_0",
+        "caster_flow",
+        "caster_flow",
+        "after_cast",
+        "alternating_circuit",
+        "hollow_crown_replace_0",
+        "emergency_patch",
+        "origin_echo",
+        "overcharge_evolution_2",
+        "caster_flow",
+        "overcharge_evolution_3",
+        "infection_potency",
+        "gravity_depth",
+        "event_horizon",
+        "infection_potency"
+      ]
+    },
+    {
+      "core": "bomb",
+      "mode": "expedition",
+      "seed": 6001,
+      "policy": "power",
+      "won": true,
+      "seconds": 400.9,
+      "integrity": 58.7,
+      "minimumIntegrity": 51.1,
+      "level": 31,
+      "kills": 764,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "bomb:3",
+        "hole:0"
+      ],
+      "final": "bomb",
+      "skillsUsed": [
+        "bomb:33",
+        "hole:23"
+      ],
+      "hybrid": "railgun_scar",
+      "methods": [
+        "overkill",
+        "precision_window",
+        "orbit_shear",
+        "event_horizon",
+        "conductive_scar",
+        "origin_echo"
+      ],
+      "relics": [
+        "crossed_wires",
+        "anchor_heart"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 2959.207631552927,
+        "INFECTION": 0,
+        "SINGULARITY": 71405.10557848169,
+        "SWARM": 0,
+        "IMPACT": 100359.72304577244,
+        "CASTER": 20142.91651033579
+      },
+      "chosen": [
+        "bomb_branch_compression",
+        "bomb_modifier_delayed_return",
+        "caster_flow",
+        "gravity_depth",
+        "impact_force",
+        "overkill",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "precision_window",
+        "infection_potency",
+        "orbit_shear",
+        "gravity_depth",
+        "impact_force",
+        "chain_voltage",
+        "bomb_evolution_1",
+        "chain_voltage",
+        "caster_flow",
+        "elite_seal",
+        "hollow_crown",
+        "event_horizon",
+        "infection_potency",
+        "anchor_heart",
+        "chain_voltage",
+        "chain_voltage",
+        "railgun_scar",
+        "impact_force",
+        "conductive_scar",
+        "infection_potency",
+        "chain_voltage",
+        "crossed_wires_replace_0",
+        "infection_potency",
+        "bomb_evolution_2",
+        "infection_potency",
+        "gravity_depth",
+        "bomb_evolution_3",
+        "origin_echo",
+        "impact_force",
+        "gravity_depth"
+      ]
+    },
+    {
+      "core": "hole",
+      "mode": "expedition",
+      "seed": 6001,
+      "policy": "power",
+      "won": true,
+      "seconds": 418.6,
+      "integrity": 50.3,
+      "minimumIntegrity": 47.5,
+      "level": 31,
+      "kills": 761,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "hole:3",
+        "seed:0"
+      ],
+      "final": "hole",
+      "skillsUsed": [
+        "hole:27",
+        "seed:37"
+      ],
+      "hybrid": "quarantine_collapse",
+      "methods": [
+        "event_horizon",
+        "orbit_shear",
+        "patient_zero",
+        "spore_census",
+        "conductive_scar",
+        "origin_echo"
+      ],
+      "relics": [
+        "hollow_crown",
+        "anchor_heart"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 138.64753310600835,
+        "INFECTION": 36160.122723562476,
+        "SINGULARITY": 88622.07778446628,
+        "SWARM": 0,
+        "IMPACT": 50294.71542239202,
+        "CASTER": 20183.79244129661
+      },
+      "chosen": [
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "gravity_depth",
+        "event_horizon",
+        "gravity_depth",
+        "chain_voltage",
+        "orbit_shear",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "quarantine_collapse",
+        "patient_zero",
+        "gravity_depth",
+        "spore_census",
+        "chain_recharge",
+        "infection_potency",
+        "elite_seal",
+        "chain_recharge",
+        "hollow_crown",
+        "swarm_support",
+        "infection_potency",
+        "hole_evolution_1",
+        "gravity_depth",
+        "anchor_heart",
+        "infection_potency",
+        "time_capsule_replace_0",
+        "gravity_depth",
+        "chain_voltage",
+        "infection_potency",
+        "conductive_scar",
+        "hollow_crown_replace_0",
+        "hole_evolution_2",
+        "origin_echo",
+        "chain_voltage",
+        "impact_force",
+        "chain_voltage",
+        "hole_evolution_3",
+        "caster_payload",
+        "caster_flow"
+      ]
+    },
+    {
+      "core": "cut",
+      "mode": "expedition",
+      "seed": 6001,
+      "policy": "power",
+      "won": true,
+      "seconds": 402.5,
+      "integrity": 76.5,
+      "minimumIntegrity": 58.5,
+      "level": 33,
+      "kills": 897,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "cut:3",
+        "hole:0"
+      ],
+      "final": "cut",
+      "skillsUsed": [
+        "cut:51",
+        "hole:39"
+      ],
+      "hybrid": "echo_order",
+      "methods": [
+        "after_cast",
+        "alternating_circuit",
+        "orbit_shear",
+        "event_horizon",
+        "conductive_scar",
+        "origin_echo"
+      ],
+      "relics": [
+        "anchor_heart",
+        "hollow_crown"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 240.8000000000001,
+        "INFECTION": 0,
+        "SINGULARITY": 97853.61938536569,
+        "SWARM": 0,
+        "IMPACT": 43577.80589982575,
+        "CASTER": 70936.20336402999
+      },
+      "chosen": [
+        "cut_branch_razor",
+        "cut_modifier_rupture_edge",
+        "after_cast",
+        "caster_payload",
+        "impact_force",
+        "caster_flow",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "caster_flow",
+        "caster_flow",
+        "caster_flow",
+        "infection_potency",
+        "caster_flow",
+        "caster_payload",
+        "infection_potency",
+        "elite_seal",
+        "cut_evolution_1",
+        "caster_payload",
+        "anchor_heart",
+        "caster_payload",
+        "caster_payload",
+        "hollow_crown",
+        "chain_voltage",
+        "alternating_circuit",
+        "time_capsule_replace_0",
+        "chain_recharge",
+        "gravity_depth",
+        "orbit_shear",
+        "event_horizon",
+        "chain_voltage",
+        "anchor_heart_replace_0",
+        "cut_evolution_2",
+        "chain_voltage",
+        "echo_order",
+        "chain_voltage",
+        "cut_evolution_3",
+        "chain_recharge",
+        "conductive_scar",
+        "chain_voltage",
+        "origin_echo"
+      ]
+    },
+    {
+      "core": "orbital",
+      "mode": "expedition",
+      "seed": 6001,
+      "policy": "power",
+      "won": false,
+      "seconds": 305.4,
+      "integrity": 0,
+      "minimumIntegrity": 0,
+      "level": 24,
+      "kills": 414,
+      "bossKills": [
+        "archivist"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": false,
+          "hp": 1820,
+          "maxHp": 4675
+        }
+      },
+      "evolution": [
+        "orbital:1",
+        "seed:0"
+      ],
+      "final": null,
+      "skillsUsed": [
+        "orbital:23",
+        "seed:26"
+      ],
+      "hybrid": "parasite_hive",
+      "methods": [
+        "target_lease",
+        "spore_census"
+      ],
+      "relics": [
+        "lens",
+        "anchor_heart"
+      ],
+      "cause": "채널링으로 현실 고정점이 붕괴했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 35522.19310156249,
+        "SINGULARITY": 0,
+        "SWARM": 33074.71978347172,
+        "IMPACT": 20492.269992397203,
+        "CASTER": 12028.988455576527
+      },
+      "chosen": [
+        "orbital_branch_hunter",
+        "orbital_modifier_incendiary_fuel",
+        "impact_force",
+        "infection_potency",
+        "gravity_depth",
+        "swarm_payload",
+        "target_lease",
+        "seed",
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "parasite_hive",
+        "swarm_payload",
+        "infection_potency",
+        "caster_flow",
+        "orbital_evolution_1",
+        "swarm_payload",
+        "elite_seal",
+        "impact_force",
+        "hollow_crown",
+        "spore_census",
+        "swarm_payload",
+        "chain_voltage",
+        "anchor_heart",
+        "caster_flow",
+        "swarm_clock_replace_0",
+        "swarm_payload",
+        "caster_payload",
+        "chain_voltage",
+        "lens_replace_0",
+        "caster_flow"
+      ]
+    },
+    {
+      "core": "seed",
+      "mode": "expedition",
+      "seed": 6001,
+      "policy": "power",
+      "won": true,
+      "seconds": 405.1,
+      "integrity": 40.5,
+      "minimumIntegrity": 19.3,
+      "level": 31,
+      "kills": 768,
+      "bossKills": [
+        "archivist",
+        "conductor",
+        "reality"
+      ],
+      "bosses": {
+        "archivist": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 3190.0000000000005
+        },
+        "conductor": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 4675
+        },
+        "reality": {
+          "killed": true,
+          "hp": 0,
+          "maxHp": 13200.000000000002
+        }
+      },
+      "evolution": [
+        "seed:3",
+        "hole:0"
+      ],
+      "final": "seed",
+      "skillsUsed": [
+        "seed:45",
+        "hole:25"
+      ],
+      "hybrid": "quarantine_collapse",
+      "methods": [
+        "patient_zero",
+        "event_horizon",
+        "spore_census",
+        "orbit_shear",
+        "precision_window",
+        "overkill",
+        "after_cast",
+        "alternating_circuit"
+      ],
+      "relics": [
+        "anchor_heart",
+        "hollow_crown"
+      ],
+      "cause": "현실 기관의 마지막 봉합을 삭제했습니다.",
+      "damage": {
+        "CHAIN": 0,
+        "INFECTION": 48487.840612622625,
+        "SINGULARITY": 73114.7775478579,
+        "SWARM": 0,
+        "IMPACT": 52517.873711465836,
+        "CASTER": 19978.71801744841
+      },
+      "chosen": [
+        "seed_branch_carrier",
+        "seed_modifier_dormant_soil",
+        "infection_potency",
+        "infection_potency",
+        "caster_payload",
+        "infection_potency",
+        "hole",
+        "hole_branch_anchor",
+        "hole_modifier_mass_ledger",
+        "quarantine_collapse",
+        "patient_zero",
+        "event_horizon",
+        "impact_force",
+        "impact_force",
+        "infection_potency",
+        "elite_seal",
+        "infection_potency",
+        "anchor_heart",
+        "seed_evolution_1",
+        "spore_census",
+        "hollow_crown",
+        "chain_recharge",
+        "orbit_shear",
+        "chain_voltage",
+        "time_capsule_replace_0",
+        "caster_flow",
+        "impact_force",
+        "gravity_depth",
+        "caster_flow",
+        "anchor_heart_replace_0",
+        "caster_flow",
+        "precision_window",
+        "seed_evolution_2",
+        "overkill",
+        "after_cast",
+        "seed_evolution_3",
+        "alternating_circuit",
+        "caster_payload",
+        "emergency_patch"
+      ]
+    }
+  ]
+}

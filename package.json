@@ -1,0 +1,12 @@
+{
+  "name": "delete-the-world-v2",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A cursor-command roguelite about editing reality.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "check": "node scripts/check.js"
+  }
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050711"><meta name="description" content="현실의 규칙을 다시 쓰는 커서 지휘 로그라이트. 고정점을 지키고, 스킬을 진화시키고, 세계의 봉합을 삭제하세요.">
+  <title>DELETE THE WORLD — Adaptive Erasure</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar"><a class="brand" href="./" aria-label="시작 화면"><span class="brand-icon">⌁</span><span>DELETE THE WORLD<small>ADAPTIVE ERASURE / V2.0</small></span></a><div class="nav"><button id="archive-button">기록 보관소 <span id="memory-chip">0 M</span></button><button id="lab-button">규칙 실험실</button><button id="guide-button">조작 안내</button><button id="settings-button" aria-label="설정">⚙</button></div></header>
+  <main>
+    <section id="menu" class="menu">
+      <div class="hero"><div class="hero-copy"><div class="eyebrow"><i></i> REALITY EDITOR // ONLINE</div><h1>작은 결함 하나로<br><span>세계를 지워라.</span></h1><p>세 고정점을 지키며 삭제의 경로를 설계하세요.<br>세계는 당신의 방식을 학습합니다. 봉합이 생기면, 새로운 균열을 찾으세요.</p><div class="hero-facts"><span>6개의 시작 코어</span><span>두 스킬의 조합</span><span>예고된 세계 적응</span></div></div>
+        <div class="hero-art" aria-hidden="true"><svg viewBox="0 0 500 300"><defs><radialGradient id="glow"><stop stop-color="#5EE3FF" stop-opacity=".18"/><stop offset="1" stop-color="#5EE3FF" stop-opacity="0"/></radialGradient></defs><circle cx="260" cy="145" r="150" fill="url(#glow)"/><g fill="none" stroke="#26384a"><circle cx="260" cy="145" r="114"/><circle cx="260" cy="145" r="80" stroke-dasharray="3 8"/><path d="M85 145h350M260 15v265"/><path d="M130 40l260 210M130 250L390 40" stroke-dasharray="2 7"/></g><g fill="none" stroke="#5EE3FF" stroke-width="2"><path d="M112 200l50-32 31 13 67-36 40-68 36 21 55-39"/><path d="M260 145l48 46 69-4 38 48"/><circle cx="260" cy="145" r="25"/><path d="M242 127l36 36M278 127l-36 36"/></g><g fill="#050711" stroke="#5EE3FF" stroke-width="2"><path d="M103 200l9-9 9 9-9 9zM251 145l9-9 9 9-9 9zM382 59l9-9 9 9-9 9z"/><circle cx="162" cy="168" r="7"/><circle cx="308" cy="191" r="7"/></g><g fill="none" stroke="#FF425B"><circle cx="336" cy="98" r="18" stroke-dasharray="3 3"/><path d="M329 91l14 14M343 91l-14 14"/></g><text x="96" y="242" fill="#6b7d91" font-family="monospace" font-size="10">INPUT → TRACE → COLLAPSE</text><text x="302" y="37" fill="#5EE3FF" font-family="monospace" font-size="10">FIND THE FISSURE.</text></svg></div>
+      </div>
+      <div class="selection-heading"><div><span class="eyebrow">01 / INITIAL RULE</span><h2>첫 삭제 규칙을 선택하세요.</h2></div><span class="muted">모든 코어에 자동 펄스와 직접 삭제가 제공됩니다.</span></div>
+      <div id="core-grid" class="core-grid"></div>
+      <div class="launch-panel"><div class="mode-select" role="group" aria-label="런 길이"><button class="mode active" data-mode="standard"><strong>표준 균열</strong><span>18–20분 · 완전한 성장</span></button><button class="mode" data-mode="expedition"><strong>단축 탐사</strong><span>6–8분 · 빠른 사건 전개</span></button></div><label class="seed-field">SEED <input id="seed-input" maxlength="32" placeholder="비워 두면 새로운 세계" aria-label="세계 시드"></label><button id="start-button" class="primary launch">삭제 프로토콜 시작 <span>↗</span></button></div>
+      <p class="menu-note">마우스로 조준 · 좌클릭 삭제 · 0.8초 홀드 강타 · E / Q 스킬 · ESC 계획 화면</p>
+    </section>
+    <section id="game-view" class="game-view hidden">
+      <div class="hud"><div class="integrity-block"><div class="hud-label">INTEGRITY <strong id="integrity-value">100</strong></div><div class="meter integrity"><i id="integrity-fill"></i></div><div class="pressure-readout">세계 압력 <span id="pressure-value">0</span><span class="anchor-mini">◇ ◇ ◇</span></div></div><div class="time-block"><strong id="time-value">00:00</strong><span id="stage-value">관찰되지 않은 세계</span></div><div class="void-block"><div class="hud-label">VOID <strong id="level-value">LV. 1</strong></div><div class="meter"><i id="xp-fill"></i></div><div id="xp-value" class="small muted">0 / 70</div></div><button id="pause-button" class="hud-pause" aria-label="일시정지">Ⅱ</button></div>
+      <div id="adaptation-rail" class="adaptation-rail"><span class="live-dot"></span> WORLD OBSERVATION <span id="adaptation-text">삭제 경로를 관찰하고 있습니다.</span></div>
+      <div class="arena-wrap"><canvas id="arena" width="1280" height="760" tabindex="0" aria-label="게임 전장. 마우스로 조준하고 클릭으로 직접 삭제하세요."></canvas><div class="arena-corners" aria-hidden="true"><span>LIVE / 03 ANCHORS</span><span id="enemy-value">00 SIGNALS</span></div>
+        <div id="boss-hud" class="boss-hud hidden"><span id="boss-name"></span><div class="meter boss"><i id="boss-fill"></i></div><small id="boss-state">균열이 열리면 직접 삭제로 공격을 끊으세요.</small></div>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="overlay-title"></div>
+      </div>
+      <div class="command-deck"><div class="direct-card"><span class="command-key">LMB</span><div><strong>DIRECT DELETE</strong><small>홀드 0.8초 · 강타</small><div class="charges"><i id="charge-0"></i><i id="charge-1"></i><span id="charge-text">2 / 2</span></div></div></div><div id="skill-card-0" class="skill-card"></div><div id="skill-card-1" class="skill-card"></div><div class="resource-card"><span>REWRITE <strong id="rewrite-value">2</strong></span><span id="heat-label">CHAIN HEAT <strong id="heat-value">0</strong></span><span id="network-label" class="hidden">T / NETWORK <strong id="network-value">0</strong></span></div></div>
+      <div class="run-footer"><span id="run-seed">SEED</span><span id="kills-value">0 DELETED</span><span id="build-value">CHAIN / 3</span><button id="fullscreen-button">전체 화면 ↗</button></div>
+    </section>
+  </main>
+  <footer class="page-footer"><span>THE WORLD REMEMBERS. YOU REWRITE.</span><span>로컬 기록 저장 · 외부 계정 불필요</span></footer>
+</div>
+<dialog id="panel"><div class="panel-shell"><button id="panel-close" class="panel-close" aria-label="닫기">×</button><div id="panel-content"></div></div></dialog>
+<script type="module" src="src/game.js"></script>
+</body></html>
