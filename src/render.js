@@ -1,6 +1,6 @@
 const TAU = Math.PI * 2;
 const C = {
-  background: '#050711', grid: '#142033', text: '#E8F0FF', muted: '#6B829E',
+  background: '#020204', text: '#FFFFFF', muted: '#91869E',
   chain: '#5EE3FF', infection: '#A6E857', singularity: '#A67CFF',
   swarm: '#F2C15A', impact: '#FF8C6B', bomb: '#ED78BF', danger: '#FF425B',
 };
@@ -8,7 +8,7 @@ const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
 const fraction = o => clamp(finite(o.remaining, finite(o.duration) - finite(o.age)) / Math.max(.001, finite(o.duration, finite(o.maxLife, 1))));
 const enemyNames = { drifter: 'DRIFTER', ward: 'WARD', channeler: 'CHANNELER', splitter: 'SPLITTER', scrubber: 'SCRUBBER', jammer: 'JAMMER', anchor: 'ANCHOR', mirror: 'MIRROR', archivist: 'THE ARCHIVIST', conductor: 'THE CONDUCTOR', reality: 'REALITY ENGINE' };
-const enemyColors = { drifter: '#8CA5C5', ward: '#6AABDA', channeler: '#FF687E', splitter: '#CC93EB', scrubber: '#B4DB9D', jammer: '#CE94E0', anchor: '#DFA67E', mirror: '#BCD4EC', archivist: '#D6B6FD', conductor: '#F2C15A', reality: '#FF748C' };
+const enemyColors = { drifter: '#D8CCFF', ward: '#75BDFF', channeler: '#FF687E', splitter: '#B08CFF', scrubber: '#B8FF76', jammer: '#CE94E0', anchor: '#FFB454', mirror: '#E6D3FF', archivist: '#D6B6FD', conductor: '#F2C15A', reality: '#FF748C' };
 
 /** All geometry is in logical arena pixels. Drawing never changes combat state. */
 export class Renderer {
@@ -39,6 +39,7 @@ export class Renderer {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     this.background();
+    if (game.phase === 'menu') { ctx.restore(); return; }
     this.anchors(false);
     const fields = game.fields || [];
     for (const field of fields) this.field(field);
@@ -67,6 +68,7 @@ export class Renderer {
   line(x1, y1, x2, y2, color, width = 1, alpha = 1, dash = null) {
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.strokeStyle = color; c.lineWidth = width;
+    if (!this.low && width >= 1.7 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : 9; }
     if (dash) c.setLineDash(dash);
     c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore();
   }
@@ -75,6 +77,7 @@ export class Renderer {
     if (!(r > 0)) return;
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.strokeStyle = color; c.lineWidth = width;
+    if (!this.low && width >= 1.7 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : 10; }
     if (dash) c.setLineDash(dash);
     c.beginPath(); c.arc(x, y, r, start, end); c.stroke(); c.restore();
   }
@@ -83,12 +86,14 @@ export class Renderer {
     if (!(r > 0)) return;
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.fillStyle = color;
+    if (!this.low && r <= 6 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = 8; }
     c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
   }
 
   polygon(x, y, radius, sides, color, fill = null, angle = -Math.PI / 2, width = 1.5, alpha = 1) {
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.lineWidth = width; c.strokeStyle = color;
+    if (!this.low && width >= 1.4 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : 8; }
     c.beginPath();
     for (let i = 0; i < sides; i++) {
       const a = angle + i * TAU / sides;
@@ -101,7 +106,7 @@ export class Renderer {
   label(text, x, y, color = C.muted, size = 10, align = 'left', alpha = 1) {
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.fillStyle = color;
-    c.font = `600 ${size}px "IBM Plex Mono", "Consolas", monospace`;
+    c.font = `600 ${size}px "Consolas", monospace`;
     c.textAlign = align; c.textBaseline = 'middle'; c.fillText(String(text), x, y); c.restore();
   }
 
@@ -137,35 +142,19 @@ export class Renderer {
   background() {
     const c = this.ctx, w = this.width, h = this.height;
     c.fillStyle = C.background; c.fillRect(0, 0, w, h);
-    const glow = c.createRadialGradient(w * .5, h * .47, 30, w * .5, h * .47, w * .68);
-    glow.addColorStop(0, '#0C1524'); glow.addColorStop(.65, '#080D19'); glow.addColorStop(1, C.background);
-    c.fillStyle = glow; c.fillRect(0, 0, w, h);
-    c.strokeStyle = this.high ? '#1C2B40' : '#111D30'; c.lineWidth = .7;
-    c.beginPath();
-    for (let x = 0; x < w; x += 40) { c.moveTo(x, 0); c.lineTo(x, h); }
-    for (let y = 0; y < h; y += 40) { c.moveTo(0, y); c.lineTo(w, y); }
-    c.stroke();
-    c.fillStyle = '#31445C'; c.globalAlpha = .42;
-    for (let x = 80; x < w; x += 160) for (let y = 80; y < h; y += 160) c.fillRect(x - 1, y - 1, 2, 2);
-    c.globalAlpha = 1;
-    const border = 18;
-    c.strokeStyle = '#26364C'; c.lineWidth = 1; c.strokeRect(border, border, w - border * 2, h - border * 2);
-    this.brackets(w / 2, h / 2, Math.min(w, h) * .5 - 12, '#385570', .75);
-    for (let x = 80; x < w - 40; x += 80) {
-      this.line(x, border, x, border + (x % 160 ? 4 : 7), '#35506C', .8, .7);
-      this.line(x, h - border, x, h - border - 4, '#35506C', .8, .6);
+    // Match the original's open black field: no frame, ruler, dashboard grid or labels.
+    const worldTime = this.game.phase === 'menu' ? 0 : finite(this.game.worldTime, this.time), bloom = clamp((worldTime - 420) / 480);
+    if (bloom > 0) {
+      const glow = c.createRadialGradient(w * .5, h * .5, 0, w * .5, h * .5, Math.max(w, h) * .7);
+      glow.addColorStop(0, '#160B28'); glow.addColorStop(1, C.background);
+      c.save(); c.globalAlpha = bloom * (this.high ? .5 : .9); c.fillStyle = glow; c.fillRect(0, 0, w, h); c.restore();
     }
-    this.label('REALITY FIELD / 03 ANCHORS', 34, 36, '#708CA9', 10);
-    this.label('ERASURE INTERFACE — LIVE', w - 34, 36, '#708CA9', 10, 'right');
-    this.label('X 000   /   Y 000', 34, h - 36, '#47627E', 9);
-    this.label(`${Math.round(w)} × ${Math.round(h)} / LOCAL`, w - 34, h - 36, '#47627E', 9, 'right');
-    const anchors = this.game.anchors || [];
-    if (anchors.length >= 3) {
-      for (let i = 0; i < anchors.length; i++) {
-        const a = anchors[i], b = anchors[(i + 1) % anchors.length];
-        this.line(a.x, a.y, b.x, b.y, '#3B6489', .8, .15, [3, 9]);
-      }
-    }
+    const count = this.low ? 24 : Math.min(120, 24 + Math.floor(worldTime / 10));
+    const drift = this.reduced ? 0 : this.clock * 3;
+    c.save(); c.fillStyle = '#9D7CFF';
+    c.globalAlpha = this.high ? .13 : .12 + clamp((50 - finite(this.game.integrity, 100)) / 150, 0, .25);
+    for (let i = 0; i < count; i++) c.fillRect((i * 997 + drift) % w, (i * 571 + 37) % h, 1, 1);
+    c.restore();
   }
 
   anchors(warnings) {
@@ -173,18 +162,19 @@ export class Renderer {
     for (const [i, a] of (this.game.anchors || []).entries()) {
       const threats = enemies.filter(e => !e.dead && e.anchorIndex === i && finite(e.channel) > 0);
       const active = threats.some(e => finite(e.channel) >= 2), busy = threats.length || a.channeling;
-      const x = a.x, y = a.y, r = finite(a.r, 24), color = active ? C.danger : busy ? '#FF9C78' : C.chain;
+      const x = a.x, y = a.y, r = finite(a.r, 24), color = active ? C.danger : busy ? '#FF9C78' : '#B08CFF';
       if (!warnings) {
-        this.circle(x, y, r + 24, '#25486A', .8, .5, 0, TAU, [2, 7]);
-        this.polygon(x, y, r + 4, 6, color, '#081320', Math.PI / 6, 1.3, .7);
-        this.polygon(x, y, r * .62, 6, color, '#0B1C2B', Math.PI / 6, 1.3, .9);
-        this.line(x - 7, y, x + 7, y, color, 1.5, .8);
-        this.line(x, y - 7, x, y + 7, color, 1.5, .8);
+        this.circle(x, y, r + 24, '#9D7CFF', .7, this.high ? .3 : .18, 0, TAU, [2, 9]);
+        this.polygon(x, y, r + 4, 6, color, '#06060B', Math.PI / 6, 1.5, .7);
+        this.polygon(x, y, r * .62, 6, busy ? color : '#E6D3FF', '#0D0817', Math.PI / 6, 1.3, .85);
+        this.line(x - 7, y, x + 7, y, busy ? color : '#FFFFFF', 1.7, .9);
+        this.line(x, y - 7, x, y + 7, busy ? color : '#FFFFFF', 1.7, .9);
+        this.fillCircle(x, y, 2.3, busy ? color : '#E6D3FF', .9);
         for (let k = 0; k < 3; k++) {
           const angle = k * TAU / 3 - Math.PI / 2;
           this.line(x + Math.cos(angle) * (r + 7), y + Math.sin(angle) * (r + 7), x + Math.cos(angle) * (r + 13), y + Math.sin(angle) * (r + 13), color, 1.5, .55);
         }
-        this.label(`ANCHOR 0${i + 1}`, x, y + r + 40, active ? '#FF899B' : '#668CA9', 10, 'center');
+        this.label(`ANCHOR 0${i + 1}`, x, y + r + 33, active ? '#FF899B' : '#998AAA', 9, 'center', .75);
         if (finite(a.damageFlash) > 0) this.circle(x, y, r + 10, C.danger, 3, clamp(a.damageFlash * 4));
       } else if (busy) {
         this.clockRing(x, y, r + 12, color, active ? 1 : Math.max(0, ...threats.map(e => clamp(e.channel / 2))), 12, 1, 2.2);
@@ -372,10 +362,11 @@ export class Renderer {
   enemy(e) {
     const c = this.ctx, x = finite(e.x), y = finite(e.y), r = finite(e.r, e.boss ? 48 : 12);
     const color = finite(e.hitFlash) > 0 ? C.text : (enemyColors[e.type] || '#93ABC8');
-    const fill = finite(e.hitFlash) > 0 ? '#30445D' : '#0A1424';
+    const fill = finite(e.hitFlash) > 0 ? '#4B345F' : '#09090F';
     const tilt = this.reduced ? 0 : Math.sin(finite(e.age) * 1.3 + finite(e.id)) * .1;
     if (e.boss) { this.boss(e, color); return; }
     c.save(); c.translate(x, y); c.rotate(tilt);
+    if (!this.low) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : e.elite ? 14 : 6; }
     if (this.high) this.circle(0, 0, r + 2, '#F1F6FF', .9, .8);
     switch (e.type) {
       case 'ward':
@@ -414,7 +405,7 @@ export class Renderer {
       default:
         c.beginPath(); c.moveTo(0, -r); c.lineTo(r * .78, -r * .12); c.lineTo(r * .3, r * .72);
         c.lineTo(-r * .72, r * .4); c.lineTo(-r * .58, -r * .4); c.closePath();
-        c.fillStyle = fill; c.fill(); c.strokeStyle = color; c.lineWidth = 1.3; c.stroke();
+        c.fillStyle = finite(e.hitFlash) > 0 ? '#F2E9FF' : finite(this.game.worldTime) < 480 ? '#D8CCFF' : '#9D87C4'; c.fill(); c.strokeStyle = color; c.lineWidth = 1.3; c.stroke();
         this.line(-r * .26, -r * .22, r * .28, r * .22, color, 1, .6); break;
     }
     if (e.elite) {
@@ -434,14 +425,14 @@ export class Renderer {
 
   health(e, color) {
     const c = this.ctx, width = e.boss ? Math.min(136, e.r * 2.5) : Math.max(22, e.r * 2), y = e.y + e.r + (e.boss ? 20 : 9);
-    c.fillStyle = '#1F2A3B'; c.fillRect(e.x - width / 2, y, width, e.boss ? 4 : 2);
+    c.fillStyle = '#181821'; c.fillRect(e.x - width / 2, y, width, e.boss ? 4 : 2);
     c.fillStyle = color; c.fillRect(e.x - width / 2, y, width * clamp(e.hp / Math.max(1, e.maxHp)), e.boss ? 4 : 2);
     if (e.boss) this.label(`${Math.ceil(e.hp).toLocaleString()} / ${Math.ceil(e.maxHp).toLocaleString()}`, e.x, y + 17, color, 9, 'center');
   }
 
   boss(e, color) {
     const x = e.x, y = e.y, r = finite(e.r, 48), age = finite(e.age);
-    this.fillCircle(x, y, r + 12, '#182031', .8);
+    this.fillCircle(x, y, r + 12, '#120818', .8);
     this.circle(x, y, r + 12, color, 1, .3, 0, TAU, [3, 8]);
     if (e.type === 'archivist') {
       for (let i = 2; i >= 0; i--) {
@@ -697,16 +688,17 @@ export class Renderer {
     if (['menu', 'results', 'ended'].includes(game.phase)) return;
     const x = cur.x, y = cur.y, hold = finite(cur.hold), charged = !!cur.down && hold >= .8;
     const r = (charged ? 48 : 36) + finite(game.stats?.radiusBonus), available = finite(game.charges, 2) > 0;
-    const color = available ? charged ? C.impact : C.text : '#57718F';
+    const color = available ? charged ? C.impact : finite(game.worldTime) >= 480 ? '#B08CFF' : C.text : '#706282';
     this.circle(x, y, r, color, .9, available ? .5 : .45, 0, TAU, available ? null : [3, 5]);
     for (let i = 0; i < 4; i++) {
       const a = i * Math.PI / 2;
       this.line(x + Math.cos(a) * 7, y + Math.sin(a) * 7, x + Math.cos(a) * 13, y + Math.sin(a) * 13, color, 1.5, .9);
     }
+    this.circle(x, y, 5, color, 1, .9);
     this.fillCircle(x, y, 1.6, color);
     for (let i = 0; i < 2; i++) {
       const start = Math.PI * .31 + i * Math.PI * .29, end = start + Math.PI * .22;
-      this.circle(x, y, 20, i < finite(game.charges) ? C.chain : '#29415D', i < finite(game.charges) ? 2.7 : 1.5, 1, start, end);
+      this.circle(x, y, 20, i < finite(game.charges) ? '#B08CFF' : '#30253F', i < finite(game.charges) ? 2.7 : 1.5, 1, start, end);
     }
     if (cur.down && available) {
       this.circle(x, y, r + 5, charged ? C.impact : C.chain, 2, 1, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(hold / .8));
