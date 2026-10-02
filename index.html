@@ -15,34 +15,32 @@
       <canvas id="arena" width="1280" height="760" tabindex="-1" aria-label="게임 전장. 마우스로 조준하고 클릭으로 직접 삭제하세요."></canvas>
     </div>
 
-    <div class="hud" aria-label="전투 상태">
-      <div class="stat deleted"><div class="label">DELETED</div><div id="kills-value" class="value">0</div></div>
-      <div class="stat void"><div class="label">VOID</div><div class="void-level"><span id="level-value">LV. 1</span><span id="xp-value">0 / 70</span></div><div class="meter"><i id="xp-fill"></i></div></div>
-      <div class="stat stability"><div class="label">REALITY STABILITY</div><div id="stability-value" class="value">100%</div><div class="meter"><i id="stability-fill" style="width:100%"></i></div><div class="time-readout"><span id="time-value">00:00</span><span id="stage-value">관찰되지 않은 세계</span></div></div>
+    <div class="hud status-bar" aria-label="상태: 삭제 수, 시간, 레벨, 안정도">
+      <div class="stat deleted"><div><div class="label">삭제 수</div><div id="kills-value" class="value">0</div></div><div class="time-readout"><span class="label">시간</span><span id="time-value">00:00</span></div></div>
+      <div class="stat void"><div class="stat-head"><span class="label">레벨</span><strong id="level-value">LV. 1</strong></div><div class="meter"><i id="xp-fill"></i></div><div id="xp-value" class="xp-readout">0 / 70</div></div>
+      <div class="stat stability"><div class="stat-head"><span class="label">안정도</span><div class="hud-tools"><button id="pause-button" aria-label="일시정지 및 현재 기록" title="현재 기록 / ESC">Ⅱ</button><button id="fullscreen-button" aria-label="전체 화면" title="전체 화면">⛶</button></div></div><div id="stability-value" class="value">100%</div><div class="meter"><i id="stability-fill" style="width:100%"></i></div></div>
     </div>
 
-    <aside class="evo-hud" aria-label="세계 진화와 상태">
-      <div id="stage-tier" class="evo-tier">WORLD TIER 0</div>
-      <div class="anchor-mini" aria-hidden="true">◇ ◇ ◇</div>
-      <div class="evo-line"><span id="adaptation-label">활성 봉합</span><span id="adaptation-value">0 / 2</span></div>
+    <aside class="evo-hud world-panel" aria-label="세계: 단계, 저항, 위협">
+      <h2 class="zone-heading">세계</h2>
+      <div id="stage-tier" class="evo-tier">단계 0</div>
+      <div class="evo-line"><span id="adaptation-label">저항</span><span id="adaptation-value">0 / 2</span></div>
       <div class="meter"><i id="adaptation-fill"></i></div>
-      <div class="evo-line"><span>무결성</span><span id="integrity-value">100%</span></div>
-      <div class="meter integrity"><i id="integrity-fill" style="width:100%"></i></div>
-      <div class="evo-line pressure-readout"><span>세계 압력</span><span id="pressure-value">0.0</span></div>
-      <div id="build-value" class="build-readout"></div>
+      <div class="evo-line pressure-readout"><span>위협</span><span id="pressure-value">0.0</span></div>
+      <div class="hidden" aria-hidden="true"><span id="integrity-value">100%</span><div class="meter integrity"><i id="integrity-fill" style="width:100%"></i></div><span id="build-value"></span><span id="stage-value"></span></div>
     </aside>
 
-    <div class="heat-widget"><div><span id="heat-label">CHAIN HEAT</span><span id="heat-value">0</span></div><div class="meter"><i id="heat-fill"></i></div></div>
-    <div class="hud-tools"><button id="pause-button" aria-label="일시정지 및 런 데이터" title="RUN DATA / ESC">Ⅱ</button><button id="fullscreen-button" aria-label="전체 화면" title="전체 화면">⛶</button></div>
-    <div id="boss-countdown" class="boss-countdown hidden"><span>REALITY ENGINE APPROACHING</span><strong id="boss-countdown-time">30</strong></div>
+    <div id="boss-countdown" class="boss-countdown hidden"><span>최종 보스 등장까지</span><strong id="boss-countdown-time">30</strong></div>
     <div id="boss-hud" class="boss-hud hidden"><span id="boss-name"></span><div class="meter boss"><i id="boss-fill"></i></div><small id="boss-state">균열이 열리면 직접 삭제로 공격을 끊으세요.</small></div>
     <div id="adaptation-rail" class="adaptation-rail"><span id="adaptation-text">삭제 경로를 관찰하고 있습니다.</span></div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <div class="direct-card"><span class="command-key">LMB</span><div><strong>DIRECT DELETE</strong><small>홀드 0.8초 · 강타</small><div class="charges"><i id="charge-0"></i><i id="charge-1"></i><span id="charge-text">2 / 2</span></div></div></div>
-    <div class="command-deck" aria-label="액티브 스킬"><div id="skill-card-0" class="skill-card" role="button" tabindex="0" aria-label="첫 번째 스킬 E"></div><div id="skill-card-1" class="skill-card" role="button" tabindex="0" aria-label="두 번째 스킬 Q"></div></div>
+    <section class="attack-zone" aria-label="공격: 클릭과 E, Q 스킬">
+      <div class="attack-heading"><h2 class="zone-heading">공격</h2><div class="heat-widget"><span id="heat-label">연쇄</span><span id="heat-value">0</span><div class="meter"><i id="heat-fill"></i></div></div></div>
+      <div class="attack-grid"><div class="direct-card"><span class="command-key">클릭</span><div><strong>직접 공격</strong><small>0.8초 홀드 · 강타</small><div class="charges"><i id="charge-0"></i><i id="charge-1"></i><span id="charge-text">2 / 2</span></div></div></div><div class="command-deck"><div id="skill-card-0" class="skill-card" role="button" tabindex="0" aria-label="첫 번째 스킬 E"></div><div id="skill-card-1" class="skill-card" role="button" tabindex="0" aria-label="두 번째 스킬 Q"></div></div></div>
+      <div id="network-label" class="network-gauge hidden"><div><span>추가 공격</span><strong id="network-value">0%</strong></div><div class="meter"><i id="network-fill"></i></div></div>
+    </section>
     <div class="resource-card hidden" aria-hidden="true"><span>REWRITE <strong id="rewrite-value">2</strong></span><span id="enemy-value">0 CELLS</span></div>
-    <div id="network-label" class="network-gauge hidden"><div><span>NETWORK</span><strong id="network-value">0%</strong></div><div class="meter"><i id="network-fill"></i></div></div>
     <div class="run-footer hidden" aria-hidden="true"><span id="run-seed">SEED</span></div>
     <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="overlay-title"></div>
   </main>
@@ -51,17 +49,16 @@
     <div id="menu-title" class="title-panel">
       <h1>DELETE THE WORLD</h1>
       <p class="title-sub">모든 것은 삭제될 수 있다.</p>
-      <div class="title-actions"><button id="begin-button">삭제 시작</button><button id="archive-button">엔트로피 <small id="memory-chip">0 M</small></button></div>
-      <div class="secondary-menu"><button id="guide-button">조작 안내</button><button id="lab-button">규칙 실험실</button><button id="settings-button">설정</button></div>
+      <div class="title-actions"><button id="begin-button">시작</button><button id="archive-button">연구 <small id="memory-chip">0 M</small></button></div>
+      <div class="secondary-menu"><button id="guide-button">게임 가이드</button><button id="lab-button">연습</button><button id="settings-button">설정</button></div>
     </div>
     <div id="setup-menu" class="setup-panel core-setup hidden">
-      <div class="eyebrow">INITIAL ANOMALY</div>
-      <h2>SELECT INITIAL ANOMALY</h2>
-      <p class="subtitle">초기 스킬을 선택하면 현실 삭제가 시작됩니다.</p>
-      <div class="launch-panel"><div class="mode-select" role="group" aria-label="런 길이"><button class="mode active" data-mode="standard"><strong>표준 균열</strong><span>18–20분 · 완전한 성장</span></button><button class="mode" data-mode="expedition"><strong>단축 탐사</strong><span>6–8분 · 빠른 사건 전개</span></button></div><label class="seed-field">WORLD SEED <input id="seed-input" maxlength="32" placeholder="비워 두면 새로운 세계" aria-label="세계 시드"></label></div>
+      <h2>첫 스킬 선택</h2>
+      <p class="subtitle">카드를 누르면 게임이 시작됩니다.</p>
+      <div class="launch-panel"><div class="mode-select" role="group" aria-label="게임 길이"><button class="mode active" data-mode="standard"><strong>기본</strong><span>18–20분</span></button><button class="mode" data-mode="expedition"><strong>빠른</strong><span>6–8분</span></button></div><details class="advanced-options"><summary>고급 설정</summary><label class="seed-field">세계 시드 <input id="seed-input" maxlength="32" placeholder="비워 두면 무작위" aria-label="세계 시드"></label></details></div>
       <div id="core-grid" class="core-grid"></div>
-      <div class="setup-actions"><button id="setup-back">뒤로</button><button id="start-button">선택한 코어로 시작</button></div>
-      <p class="menu-note">마우스 조준 · 좌클릭 삭제 · 0.8초 홀드 강타 · E / Q 스킬 · ESC 런 데이터</p>
+      <div class="setup-actions"><button id="setup-back">뒤로</button><button id="start-button" class="hidden">현재 스킬로 시작</button></div>
+      <p class="menu-note">클릭 공격 · E / Q 스킬 · ESC 일시정지</p>
     </div>
   </section>
   <dialog id="panel"><div class="panel-shell"><button id="panel-close" class="panel-close" aria-label="닫기">×</button><div id="panel-content"></div></div></dialog>

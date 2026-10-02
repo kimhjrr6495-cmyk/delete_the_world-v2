@@ -139,9 +139,9 @@ test('danger and cursor signals survive effect overload and render after cosmeti
   game.cursor.down = true; game.cursor.hold = 1.2;
   const trace = stableDraw(game), labels = trace.texts.map(t => t.text);
   assert.ok(labels.includes('CRITICAL THREAT'));
-  assert.ok(labels.includes('FULL'));
+  assert.ok(labels.includes('완충'));
   assert.ok(labels.indexOf('COSMETIC DAMAGE') < labels.indexOf('CRITICAL THREAT'));
-  assert.ok(labels.indexOf('CRITICAL THREAT') < labels.indexOf('FULL'));
+  assert.ok(labels.indexOf('CRITICAL THREAT') < labels.indexOf('완충'));
   assert.ok(trace.arcs.some(a => a.args[0] === 640 && a.args[1] === 350 && a.args[2] === 70 && a.style === '#FF425B'));
 });
 
@@ -153,7 +153,7 @@ test('crowded low-effects preserves distant adaptation weakness and priority inf
   game.status(priority, 'infected', { duration: 5, remaining: 4, stacks: 2 });
   for (const enemy of game.enemies.slice(2)) game.status(enemy, 'infected', { duration: 3, remaining: 2 });
   const trace = stableDraw(game);
-  assert.ok(trace.texts.some(t => t.text === 'IMPACT' && t.x > adaptive.x));
+  assert.ok(trace.texts.some(t => t.text === '충격' && t.x > adaptive.x));
   assert.ok(trace.texts.some(t => t.text === '4s'));
   assert.ok(trace.texts.some(t => t.text.startsWith('×')));
 });
@@ -163,8 +163,8 @@ test('channel warning is incoming for the full two-second grace period', () => {
   const a = game.anchors[0]; a.channeling = true;
   game.spawnEnemy('channeler', { x: a.x - 40, y: a.y, anchorIndex: 0, channel: 1.9 });
   const trace = stableDraw(game);
-  assert.ok(trace.texts.some(t => t.text === 'CHANNEL INCOMING'));
-  assert.ok(!trace.texts.some(t => t.text === 'INTEGRITY LEAK'));
+  assert.ok(trace.texts.some(t => t.text === '공격 준비'));
+  assert.ok(!trace.texts.some(t => t.text === '안정도 손상'));
 });
 
 test('low-effects shows live protection links, relay selection radius and exact direct splash radius', () => {

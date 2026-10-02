@@ -1,3 +1,5 @@
+import { displayText, enemyName } from './ui-text.js';
+
 const TAU = Math.PI * 2;
 const C = {
   background: '#020204', text: '#FFFFFF', muted: '#91869E',
@@ -7,7 +9,9 @@ const C = {
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
 const fraction = o => clamp(finite(o.remaining, finite(o.duration) - finite(o.age)) / Math.max(.001, finite(o.duration, finite(o.maxLife, 1))));
-const enemyNames = { drifter: 'DRIFTER', ward: 'WARD', channeler: 'CHANNELER', splitter: 'SPLITTER', scrubber: 'SCRUBBER', jammer: 'JAMMER', anchor: 'ANCHOR', mirror: 'MIRROR', archivist: 'THE ARCHIVIST', conductor: 'THE CONDUCTOR', reality: 'REALITY ENGINE' };
+const enemyNames = Object.fromEntries(['drifter','ward','channeler','splitter','scrubber','jammer','anchor','mirror','archivist','conductor','reality','training_boss'].map(id=>[id,enemyName(id)]));
+const labelCache = new Map();
+const signalNames = { COMMAND:'포격', LOCK:'고정', TRACK:'추적', DORMANT:'잠복', FOLD:'접기', PURIFYING:'정화', 'WORLD CUT':'절단 경고' };
 const enemyColors = { drifter: '#D8CCFF', ward: '#75BDFF', channeler: '#FF687E', splitter: '#B08CFF', scrubber: '#B8FF76', jammer: '#CE94E0', anchor: '#FFB454', mirror: '#E6D3FF', archivist: '#D6B6FD', conductor: '#F2C15A', reality: '#FF748C' };
 
 /** All geometry is in logical arena pixels. Drawing never changes combat state. */
@@ -105,9 +109,14 @@ export class Renderer {
 
   label(text, x, y, color = C.muted, size = 10, align = 'left', alpha = 1) {
     const c = this.ctx;
+    let content=String(text);
+    if(/[A-Za-z]/.test(content)){
+      if(!labelCache.has(content)){if(labelCache.size>256)labelCache.clear();labelCache.set(content,signalNames[content]||(/^M\d+$/.test(content)?`질량 ${content.slice(1)}`:displayText(content)));}
+      content=labelCache.get(content);
+    }
     c.save(); c.globalAlpha = alpha; c.fillStyle = color;
     c.font = `600 ${size}px "Consolas", monospace`;
-    c.textAlign = align; c.textBaseline = 'middle'; c.fillText(String(text), x, y); c.restore();
+    c.textAlign = align; c.textBaseline = 'middle'; c.fillText(content, x, y); c.restore();
   }
 
   brackets(x, y, r, color, alpha = 1, lineWidth = 1.5) {
@@ -174,12 +183,12 @@ export class Renderer {
           const angle = k * TAU / 3 - Math.PI / 2;
           this.line(x + Math.cos(angle) * (r + 7), y + Math.sin(angle) * (r + 7), x + Math.cos(angle) * (r + 13), y + Math.sin(angle) * (r + 13), color, 1.5, .55);
         }
-        this.label(`ANCHOR 0${i + 1}`, x, y + r + 33, active ? '#FF899B' : '#998AAA', 9, 'center', .75);
+        if(busy)this.label(`고정점 ${i + 1}`, x, y + r + 33, active ? '#FF899B' : '#998AAA', 11, 'center', .9);
         if (finite(a.damageFlash) > 0) this.circle(x, y, r + 10, C.danger, 3, clamp(a.damageFlash * 4));
       } else if (busy) {
         this.clockRing(x, y, r + 12, color, active ? 1 : Math.max(0, ...threats.map(e => clamp(e.channel / 2))), 12, 1, 2.2);
         this.brackets(x, y, r + 20, color, 1, 1.7);
-        this.label(active ? 'INTEGRITY LEAK' : 'CHANNEL INCOMING', x, y - r - 26, color, 10, 'center');
+        this.label(active ? '안정도 손상' : '공격 준비', x, y - r - 26, color, 12, 'center');
         for (const e of threats.slice(0, 4)) {
           this.line(e.x, e.y, x, y, color, active ? 1.7 : 1.1, active ? .7 : .5, active ? null : [5, 5]);
           const p = this.reduced ? .5 : ((this.time * .8) % 1);
@@ -420,7 +429,7 @@ export class Renderer {
     const cursor = this.game.cursor || { x: 0, y: 0 };
     const near = Math.hypot(cursor.x - x, cursor.y - y) < 70;
     if (near || e.elite || e.type === 'channeler' || (e.hp < e.maxHp && !this.low && (this.game.enemies?.length || 0) < 80)) this.health(e, color);
-    if (near || e.elite) this.label(enemyNames[e.type] || e.type?.toUpperCase() || 'ENTITY', x, y - r - 18, e.elite ? C.swarm : color, 8, 'center', .9);
+    if (near || e.elite) this.label(enemyNames[e.type] || '우선 목표', x, y - r - 18, e.elite ? C.swarm : color, 11, 'center', .9);
   }
 
   health(e, color) {
@@ -463,7 +472,7 @@ export class Renderer {
     }
     if (this.high) this.circle(x, y, r + 2, C.text, 1, .7);
     this.label(enemyNames[e.type] || 'WORLD CORE', x, y - r - 29, color, 11, 'center');
-    this.label(`PHASE ${finite(e.phaseIndex, finite(e.phase, 1) - 1) + 1} / PRIORITY`, x, y - r - 15, '#9B7F91', 8, 'center');
+    this.label(`${finite(e.phaseIndex, finite(e.phase, 1) - 1) + 1}단계`, x, y - r - 15, '#9B7F91', 10, 'center');
     this.health(e, color);
   }
 
