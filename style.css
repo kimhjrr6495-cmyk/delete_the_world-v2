@@ -464,6 +464,80 @@ dialog::backdrop { background: #03070de3; }
   .title-panel h1 { font-size: 45px; }
   .title-sub { margin: 15px 0 22px; }
 }
+/* Celestial light: quiet at rest, bright only where the player acts. */
+:root {
+  --bg: #090f29; --panel: #151b3de0; --line: #aaa0ec20;
+  --text: #f1efff; --muted: #b5b6d5; --purple: #c6adf4;
+  --cyan: #a1d8e8; --gold: #f1d6a2;
+}
+button { background: #b5b0f00a; transition: background .3s, color .3s, transform .25s, box-shadow .3s; }
+button:hover { background: #b5b0f01a; }
+button.primary, #resume-button, #retry-button {
+  background: linear-gradient(125deg, #ded2fa, #acd3e8); color: #20223e;
+  box-shadow: 0 5px 30px #a8a3e822, inset 0 1px 0 #fff8;
+}
+button.primary:hover, #resume-button:hover, #retry-button:hover { background: linear-gradient(125deg, #f1e5ff, #c5e8f6); box-shadow: 0 6px 36px #b5a7ed40; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, [role=button]:focus-visible { outline-color: #c8c0f4; }
+input, select { background: #0e1530; border-color: #aca7dd29; }
+.menu { background: radial-gradient(ellipse at 48% 28%, #7663b61a, transparent 58%), linear-gradient(#0c143133, #10132a9c); }
+.overlay { background: #0e1433cf; backdrop-filter: blur(14px); }
+.title-emblem { background: radial-gradient(circle at 38% 32%, #a9caed 0%, #7368ba 23%, #1c2449 48%, #b4a5f12b 51%, #6e9fce12 61%, transparent 70%); box-shadow: 0 0 65px #9f89e01a; }
+.title-emblem:before { border-color: #bdaaf74a; box-shadow: 0 0 12px #b5a4ef0d; }
+.title-emblem:after { border-color: #a1d8e836; }
+.title-emblem i { background: #d4e8ff; box-shadow: 0 0 9px #b7d9ff80; }
+.title-panel h1 { color: #eee9ff; text-shadow: 0 0 48px #afa0f122; font-weight: 600; letter-spacing: -.045em; }
+.title-sub { color: #c0bed9; }
+.core-card, .choice-card, .research-grid button, .codex-item, .run-box, .build-section, .result-stat, .guide-steps > *, .lab-description {
+  background: linear-gradient(145deg, #24284bc7, #111a35b8);
+  border: 1px solid #b8a7f018; box-shadow: inset 0 1px 0 #e0d7ff04;
+}
+.core-card:hover, .core-card.selected, .choice-card:hover, .research-grid button:hover {
+  background: linear-gradient(145deg, #353254df, #192745da);
+  border-color: #baadf548; box-shadow: 0 8px 30px #7567c319, inset 0 1px 0 #ddd5ff0c;
+}
+.core-card.selected { box-shadow: 0 0 26px #ac8cec20; }
+.choice-card.evolutionCard, .choice-card.skillUpgradeDrop { background: linear-gradient(145deg, #49374cce, #202340d9 80%); border-color: #e7cda74f; }
+dialog { background: linear-gradient(150deg, #222345f5, #101c36f5); border-color: #b5a3e52b; box-shadow: 0 24px 100px #03091e99, 0 0 45px #8874c40f; }
+dialog::backdrop { background: #070d25bc; }
+.mode-select, .advanced-options, .guide-tabs { background: #171c3866; }
+.mode.active, .guide-tabs button.active, .guide-tabs button[aria-selected=true], .lab-skill-grid button.active, .lab-skill-grid button[aria-pressed=true] { background: #a498d320; color: #eee9ff; box-shadow: inset 0 0 18px #af99ec0a; }
+.lab-skill-grid button, .guide-card, .guide-note { background: #8c87cf0b; }
+.time-readout, .direct-label, .slot-key, .void .label, #level-value { color: #bfc5e5; }
+.deleted .value { color: #f0eaff; text-shadow: 0 0 18px #beb3f22a; }
+.status-bar { text-shadow: 0 2px 12px #090d25; }
+.void .meter { height: 4px; background: #aab1e21a; }
+.meter { position: relative; background: #aab1e217; }
+.meter i { position: relative; background: linear-gradient(90deg, #8d8fc9, #b6a0e9 55%, #b7dbe9); box-shadow: 0 0 10px #b3a7e73d; transition: width .28s ease-out; }
+.meter i:after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, #fff5 50%, transparent 70%); background-size: 200% 100%; animation: celestialFlow 7s linear infinite; }
+.boss i { background: linear-gradient(90deg, #bb577b, #e4a0ac); }
+.toast { background: #17203cd9; color: #e0e0f6; box-shadow: 0 4px 24px #080e2533; }
+.skill-card, .skill-card:hover, .skill-card.targeting {
+  isolation: isolate; background: radial-gradient(circle at 38% 30%, color-mix(in srgb, var(--skill-color) 17%, #222a4b), #101831b0 59%, transparent 73%);
+}
+.skill-card:before { content: ''; position: absolute; z-index: -1; inset: 10px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse at 30% 35%, color-mix(in srgb, var(--skill-color) 24%, transparent), transparent 65%);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--skill-color) 7%, transparent);
+  opacity: calc(.22 + var(--cooldown-progress) * .78); transform: scale(calc(.75 + var(--cooldown-progress) * .25)); transition: opacity .25s, transform .25s;
+}
+.skill-card:after { content: ''; position: absolute; z-index: -1; inset: 11px 5px; border: 1px solid color-mix(in srgb, var(--skill-color) 18%, transparent); border-radius: 50%; transform: rotate(-28deg); pointer-events: none;
+  background: radial-gradient(circle at 10% 50%, var(--skill-color) 0 1px, transparent 2px), radial-gradient(circle at 90% 50%, var(--skill-color) 0 1px, transparent 2px);
+  animation: celestialOrbit 24s linear infinite;
+}
+.skill-card.ready:before { animation: coreBreath 5s ease-in-out infinite; }
+.skill-card:hover:before, .skill-card.targeting:before { box-shadow: 0 0 30px color-mix(in srgb, var(--skill-color) 22%, transparent); }
+.skill-card:hover:after, .skill-card.targeting:after { border-color: color-mix(in srgb, var(--skill-color) 38%, transparent); filter: drop-shadow(0 0 4px var(--skill-color)); }
+.skill-card .skill-symbol { opacity: calc(.3 + var(--cooldown-progress) * .6); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--skill-color) 25%, transparent)); }
+.skill-card.empty:before, .skill-card.empty:after { display: none; }
+.ring-track { stroke: #a2a1d21c; }
+.ring-progress { opacity: .58; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--skill-color) 24%, transparent)); transition: stroke-dashoffset .2s linear; }
+.charges i { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ecf0ff, #ada7de); box-shadow: 0 0 10px #c6b9eb55; }
+.charges i.empty { background: #404866; }
+@keyframes coreBreath { 0%,100% { opacity: .68; } 50% { opacity: 1; } }
+@keyframes celestialOrbit { to { transform: rotate(332deg); } }
+@keyframes celestialFlow { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+body.low-effects .skill-card:after, body.low-effects .meter i:after { display: none; }
+body.low-effects .skill-card:before { animation: none; box-shadow: none; }
+body.low-effects dialog { box-shadow: 0 24px 60px #03091e80; }
 @media(prefers-reduced-motion:reduce) {
   *, *:before, *:after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
   .choice-card:hover, .core-card:hover, .skill-card:hover { transform: none; }

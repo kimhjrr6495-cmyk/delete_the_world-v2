@@ -11,6 +11,7 @@ const $=id=>document.getElementById(id),escape=text=>String(text??'').replace(/[
 let storage;try{storage=localStorage;}catch{}
 let save=readSave(storage),selected='overcharge',mode='standard',toastUntil=0,resumeAfterPanel=false,panelType=null,rebind=null,labConfig=null,bindingError='';
 let cooldownTrack=[{id:null,last:0,total:0},{id:null,last:0,total:0}];
+let visualCastRoot=null;
 let guidePage='basics';
 const defaults={skill0:'KeyE',skill1:'KeyQ',network:'KeyT',pause:'Escape'};let keys={...defaults,...save.settings.keys};
 const game=new Game({settings:{...save.settings,reducedMotion:save.settings.reducedMotion||matchMedia('(prefers-reduced-motion: reduce)').matches},research:save.research,onEvent:event,onSound:name=>audio?.play(name)});
@@ -20,6 +21,7 @@ window.__DTW__={game,version:'2.0.0'};
 function applyUISettings(){document.body.classList.toggle('reduced-motion',!!game.settings.reducedMotion);document.body.classList.toggle('high-contrast',!!game.settings.highContrast);document.body.classList.toggle('low-effects',!!game.settings.lowEffects);}
 function persist(){save.settings={...game.settings,keys};save.research={...game.research};applyUISettings();const success=writeSave(storage,save);$('memory-chip').textContent=`${save.memory} M`;return success;}
 function event(type,payload){
+  if(type==='start'||type==='training')visualCastRoot=null;
   if(['start','training','choices','pause','end'].includes(type)){attackPointerId=null;targetingPress=null;}
   if(type==='toast'){$('toast').textContent=noticeText(payload);toastUntil=performance.now()+3000;$('toast').classList.add('visible');}
   if(type==='start'){document.body.classList.remove('menu-state');$('menu').classList.add('hidden');$('game-view').classList.remove('hidden');hideOverlay();cooldownTrack=[{id:null,last:0,total:0},{id:null,last:0,total:0}];$('run-seed').textContent=`SEED / ${game.seed}`;renderSkillCards();renderHUD();canvas.tabIndex=0;canvas.focus({preventScroll:true});}
@@ -72,6 +74,16 @@ function renderSkillCards(){
   }
 }
 function renderHUD(){
+  const latestCast=game.castHistory?.at(-1);
+  if(latestCast&&latestCast.rootId!==visualCastRoot){
+    visualCastRoot=latestCast.rootId;
+    const core=$(`skill-card-${latestCast.index}`);
+    if(core&&!game.settings.reducedMotion&&!game.settings.lowEffects)core.animate([
+      {filter:'brightness(1)',boxShadow:'0 0 0 0 transparent'},
+      {filter:'brightness(1.8)',boxShadow:'0 0 30px 8px color-mix(in srgb, var(--skill-color) 30%, transparent)',offset:.2},
+      {filter:'brightness(1)',boxShadow:'0 0 42px 18px transparent'}
+    ],{duration:650,easing:'ease-out'});
+  }
   const integrity=clamp(game.integrity/game.maxIntegrity*100,0,100);
   $('integrity-value').textContent=`${Math.ceil(integrity)}%`;$('integrity-fill').style.width=`${integrity}%`;$('integrity-fill').style.background=game.integrity<30?'#ff526d':'#e8e8ff';
   $('stability-value').textContent=`${Math.ceil(integrity)}%`;$('stability-fill').style.width=`${integrity}%`;

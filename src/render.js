@@ -3,7 +3,7 @@ import { arenaViewport } from './util.js';
 
 const TAU = Math.PI * 2;
 const C = {
-  background: '#03050B', text: '#F7F2E7', muted: '#A49DB0',
+  background: '#090F29', text: '#F7F2FF', muted: '#B3B4D7',
   chain: '#5EE3FF', infection: '#A6E857', singularity: '#A67CFF',
   swarm: '#F2C15A', impact: '#FF8C6B', bomb: '#ED78BF', danger: '#FF425B',
 };
@@ -23,12 +23,15 @@ export class Renderer {
     this.clock = 0;
     this.width = 1280;
     this.height = 760;
+    this.healthTrails = new Map();
   }
 
   draw(game, dt = 0) {
     const ctx = this.ctx;
     if (!ctx) return;
     this.clock += finite(dt);
+    this.frameDt = finite(dt);
+    if (this.healthTrails.size > 600) this.healthTrails.clear();
     this.width = finite(game.width, 1280);
     this.height = finite(game.height, 760);
     this.game = game;
@@ -158,20 +161,36 @@ export class Renderer {
     const worldTime = this.game.phase === 'menu' ? 0 : finite(this.game.worldTime, this.time);
     const ruin = clamp((100 - finite(this.game.integrity, 100)) / 100), bloom = clamp(worldTime / 1080);
     // Soft, irregular nebulae establish a place. Their light never competes with danger.
-    this.glow(w * .27, h * .35, w * .48, '#303146', this.high ? .16 : .35);
+    this.glow(w * .27, h * .35, w * .58, '#323B83', this.high ? .16 : .44);
     if (!this.low) {
-      this.glow(w * .76, h * .62, w * .43, ruin > .55 ? '#4B2338' : '#29293D', .2 + bloom * .16);
-      this.glow(w * .52, h * .79, w * .32, '#153137', .18);
-      c.save(); c.globalAlpha = this.high ? .1 : .2; c.fillStyle = '#04050B';
-      c.beginPath(); c.moveTo(-50, h * .5); c.bezierCurveTo(w * .22, h * .14, w * .45, h * .91, w * .66, h * .43);
-      c.bezierCurveTo(w * .79, h * .18, w * .94, h * .4, w + 50, h * .27);
-      c.lineTo(w + 50, h * .49); c.bezierCurveTo(w * .65, h * .29, w * .42, h, -50, h * .66); c.closePath(); c.fill(); c.restore();
+      this.glow(w * .76, h * .62, w * .48, ruin > .55 ? '#552D60' : '#513578', .28 + bloom * .1);
+      this.glow(w * .52, h * .79, w * .36, '#19596C', .2);
+      this.glow(w * .5, h * .46, w * .35, '#384871', .12);
+      for (let i = 0; i < 5; i++) {
+        const x = w * (.12 + i * .19), y = h * (.42 + Math.sin(i * 1.6) * .14);
+        this.glow(x, y, w * .19, i % 2 ? '#534070' : '#254B6F', this.high ? .05 : .1);
+      }
     }
-    const count = this.low ? 34 : 110, drift = this.reduced ? 0 : this.clock * .9;
+    const count = this.low ? 34 : 150, drift = this.reduced ? 0 : this.clock * .55;
     for (let i = 0; i < count; i++) {
       const x = ((i * 997.31 + drift * (i % 3 + 1)) % (w + 20)) - 10, y = ((i * 571.71 + 37) % h);
       const twinkle = this.reduced ? 1 : .76 + Math.sin(this.clock * .35 + i * 1.4) * .24;
-      this.fillCircle(x, y, i % 17 ? .6 : 1.25, i % 4 ? '#BFC4D1' : '#B1A69F', (i % 17 ? .22 : .43) * twinkle);
+      this.fillCircle(x, y, i % 17 ? .65 : 1.25, i % 4 ? '#C9D7FF' : '#C5B1EF', (i % 17 ? .3 : .56) * twinkle);
+      if (!this.low && i % 37 === 0) this.glow(x, y, 7, '#A9BCFF', .13 * twinkle);
+    }
+    if (!this.low && !this.reduced) {
+      // Deterministic, rare starlight: no random calls or combat state changes.
+      const passage = this.clock % 23;
+      if (passage > 20 && passage < 21.6) {
+        const t = (passage - 20) / 1.6, x = w * (.68 + t * .18), y = h * (.12 + t * .14);
+        this.line(x - 38, y - 20, x, y, '#B9CAFF', 1, Math.sin(t * Math.PI) * .25);
+        this.glow(x, y, 8, '#CEDAFF', Math.sin(t * Math.PI) * .18);
+      }
+      for (let i = 0; i < 18; i++) {
+        const x = (i * 179.7 + this.clock * (1 + i % 3)) % w;
+        const y = (i * 93.3 + Math.sin(this.clock * .08 + i) * 14 + h) % h;
+        this.glow(x, y, 2.5, '#B7B1EF', .09);
+      }
     }
     if (ruin > .4) {
       c.save(); c.globalAlpha = (ruin - .4) * .14; c.strokeStyle = '#AA7780'; c.lineWidth = 1;
@@ -298,7 +317,8 @@ export class Renderer {
 
   earth(x, y, r, index = 0) {
     const c = this.ctx;
-    this.glow(x, y, r * 2.8, '#528BC4', .17);
+    this.glow(x, y, r * 2.8, '#69BAF2', .24);
+    if (!this.low) this.celestialDust(x, y, r * 1.45, '#B2E7FF', index, .35);
     const ocean = c.createRadialGradient(x - r * .4, y - r * .45, r * .08, x, y, r);
     ocean.addColorStop(0, '#66BDFA'); ocean.addColorStop(.5, '#2784CC'); ocean.addColorStop(1, '#10395F');
     this.fillCircle(x, y, r, ocean);
@@ -531,7 +551,7 @@ export class Renderer {
   enemy(e) {
     const c = this.ctx, r = finite(e.r, e.boss ? 48 : 12), selected = this.previewTargets.has(e.id);
     const statuses = e.statuses || {}, hit = finite(e.hitFlash) > 0;
-    const hue = this.reduced ? 0 : (this.clock * 72 + finite(e.id) * 29) % 360;
+    const hue = this.reduced ? 0 : (this.clock * 12 + finite(e.id) * 29) % 360;
     const color = e.boss ? C.danger : e.elite ? `hsl(${hue} 100% 72%)` : (enemyColors[e.type] || '#F4F6FF');
     let x = finite(e.x), y = finite(e.y);
     // Preview displacement is optical only: no collision, damage or enemy coordinate changes.
@@ -544,6 +564,11 @@ export class Renderer {
     if (e.boss) { this.boss(e, color); return; }
     const stage = finite(this.game.worldTime) >= 420 ? 2 : finite(this.game.worldTime) >= 180 ? 1 : 0;
     const special = e.type !== 'drifter';
+    if (special || stage > 0 || hit || selected) {
+      const atmosphere = e.type === 'scrubber' ? '#65DDB3' : e.type === 'anchor' ? '#F7BC73' : color;
+      this.glow(x, y, r * 2.3, atmosphere, hit || selected ? .38 : .14);
+      if (!this.low && (special || stage >= 2)) this.celestialDust(x, y, r * 1.65, atmosphere, finite(e.id), .38);
+    }
     const orbit = stage > 0 || ['splitter', 'anchor', 'mirror'].includes(e.type);
     const angle = -.35 + (finite(e.id) % 5) * .19 + (this.reduced ? 0 : finite(e.age) * .08);
     if (stage >= 2 || e.elite || e.type === 'channeler' || e.type === 'jammer')
@@ -590,8 +615,25 @@ export class Renderer {
     const c = this.ctx, radius = finite(e.r, e.boss ? 48 : 12);
     const width = e.boss ? Math.min(136, radius * 2.5) : Math.max(22, radius * 2), y = e.y + radius + (e.boss ? 20 : 9);
     const height = e.boss ? 4 : this.high ? 3 : 2.5;
-    c.fillStyle = '#30343F'; c.fillRect(e.x - width / 2, y, width, height);
+    const ratio = clamp(finite(e.hp) / Math.max(1, finite(e.maxHp, e.hp)));
+    const previous = this.healthTrails.get(e.id) ?? ratio;
+    const trail = this.reduced ? ratio : previous + (ratio - previous) * (1 - Math.exp(-finite(this.frameDt, 1 / 60) * 9));
+    this.healthTrails.set(e.id, trail);
+    c.fillStyle = '#253252'; c.fillRect(e.x - width / 2, y, width, height);
+    if (Math.abs(trail - ratio) > .001) { c.save(); c.globalAlpha = .25; c.fillStyle = '#E3C8FF'; c.fillRect(e.x - width / 2, y, width * trail, height); c.restore(); }
     c.fillStyle = color; c.fillRect(e.x - width / 2, y, width * clamp(finite(e.hp) / Math.max(1, finite(e.maxHp, e.hp))), height);
+    if (!this.low && ratio > 0 && (e.type !== 'drifter' || finite(this.game.worldTime) >= 180)) {
+      const flow = this.reduced ? .5 : (this.clock * .18 + finite(e.id) * .13) % 1;
+      this.glow(e.x - width / 2 + width * ratio * flow, y + height / 2, 5, color, .2);
+    }
+  }
+
+  celestialDust(x, y, r, color, seed = 0, alpha = .4) {
+    const spin = this.reduced ? 0 : this.clock * .12;
+    for (let i = 0; i < 3; i++) {
+      const a = spin + seed * .7 + i * TAU / 3;
+      this.fillCircle(x + Math.cos(a) * r, y + Math.sin(a) * r * .72, .8, color, alpha);
+    }
   }
 
   boss(e, color = C.danger) {
@@ -716,11 +758,14 @@ export class Renderer {
         break;
       }
       case 'ring':
-        this.circle(x, y, r, color, Math.max(.7, 1.4 - p), alpha * .65);
+        // Range indicators remain exact; expanding ripples belong to impact effects.
+        this.circle(x, y, r, color, Math.max(.7, 1.8 - p), alpha * .7);
         if (f.segments) this.clockRing(x, y, r, color, 1 - p, f.segments, alpha); break;
       case 'burst': {
         // A small death is a quiet fleck. Large phenomena compress, hang, then expand.
         if (r <= 35) {
+          this.glow(x, y, r * (1 + p), color, alpha * .38);
+          this.fillCircle(x, y, Math.max(.5, 5 * (1 - p)), '#F4EDFF', alpha * .85);
           const count = this.low ? 3 : 6;
           for (let i = 0; i < count; i++) {
             const a = i * TAU / count + x * .03, d = r * (this.reduced ? .45 : .2 + p * .85);
@@ -777,8 +822,14 @@ export class Renderer {
         this.circle(x, y, r * (this.reduced ? 1 : .6 + p * .4), color, .8, alpha * .2); break;
       case 'heal': this.glow(x, y, r, color, alpha * .12); this.inwardDust(x, y, r * .7, color, age, alpha * .6); break;
       case 'hit':
+        this.glow(x, y, r * 1.5, color, alpha * .3);
+        this.circle(x, y, r * (this.reduced ? .8 : .35 + p * .65), color, 1, alpha * .45);
         this.fillCircle(x, y, 3.5, '#F7EEE1', alpha * .8);
-        this.line(x - 4, y - 3, x + 4, y + 3, color, 1.3, alpha * .6); break;
+        if (!this.low) for (let i = 0; i < 5; i++) {
+          const a = i * TAU / 5 + x * .03, d = 3 + p * r;
+          this.fillCircle(x + Math.cos(a) * d, y + Math.sin(a) * d, 1.3 - p * .6, color, alpha * .7);
+        }
+        break;
       case 'marker':
         this.glow(x, y, r * 1.2, color, alpha * .14);
         this.organic(x, y, Math.min(r, 8), color, '#131923', x, 3, alpha * .65, 1);
