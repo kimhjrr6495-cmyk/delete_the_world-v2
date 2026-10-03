@@ -1,4 +1,5 @@
 import { displayText, enemyName } from './ui-text.js';
+import { arenaViewport } from './util.js';
 
 const TAU = Math.PI * 2;
 const C = {
@@ -12,7 +13,7 @@ const fraction = o => clamp(finite(o.remaining, finite(o.duration) - finite(o.ag
 const enemyNames = Object.fromEntries(['drifter','ward','channeler','splitter','scrubber','jammer','anchor','mirror','archivist','conductor','reality','training_boss'].map(id=>[id,enemyName(id)]));
 const labelCache = new Map();
 const signalNames = { COMMAND:'포격', LOCK:'고정', TRACK:'추적', DORMANT:'잠복', FOLD:'접기', PURIFYING:'정화', 'WORLD CUT':'절단 경고' };
-const enemyColors = { drifter: '#D8CCFF', ward: '#75BDFF', channeler: '#FF687E', splitter: '#B08CFF', scrubber: '#B8FF76', jammer: '#CE94E0', anchor: '#FFB454', mirror: '#E6D3FF', archivist: '#D6B6FD', conductor: '#F2C15A', reality: '#FF748C' };
+const enemyColors = { drifter: '#F4F6FF', ward: '#75BDFF', channeler: '#FF425B', splitter: '#B08CFF', scrubber: '#B8FF76', jammer: '#FF78C9', anchor: '#FFB454', mirror: '#C9EFFF', archivist: '#FF425B', conductor: '#FF425B', reality: '#FF425B', training_boss: '#FF425B' };
 
 /** All geometry is in logical arena pixels. Drawing never changes combat state. */
 export class Renderer {
@@ -39,7 +40,11 @@ export class Renderer {
     this.preview = game.skills?.targetingPreview || null;
     this.previewTargets = new Set(this.preview?.targets || []);
     ctx.save();
-    ctx.setTransform(this.canvas.width / this.width, 0, 0, this.canvas.height / this.height, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = C.background;
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    const viewport = arenaViewport(this.canvas.width, this.canvas.height, this.width, this.height);
+    ctx.setTransform(viewport.scale, 0, 0, viewport.scale, viewport.offsetX, viewport.offsetY);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     ctx.lineCap = 'round';
@@ -259,26 +264,25 @@ export class Renderer {
     for (const [i, a] of (this.game.anchors || []).entries()) {
       const threats = enemies.filter(e => !e.dead && e.anchorIndex === i && finite(e.channel) > 0);
       const active = threats.some(e => finite(e.channel) >= 2), busy = threats.length || a.channeling;
-      const integrity = clamp(finite(this.game.integrity, 100) / Math.max(1, finite(this.game.maxIntegrity, 100)));
-      const x = a.x, y = a.y, r = finite(a.r, 24), color = active ? C.danger : busy ? '#FF9C78' : integrity < .4 ? '#B78C8C' : '#CEC5B0';
+      const x = a.x, y = a.y, r = finite(a.r, 24), color = active ? C.danger : '#FFAD70';
       if (!warnings) {
-        const breath = this.reduced ? 1 : .94 + Math.sin(this.clock * 1.5 + i * 2) * .06;
-        this.glow(x, y, r * (busy ? 4.8 : 4) * breath, color, (busy ? .18 : .11) + integrity * .07);
-        this.organic(x, y, r + 3, '#69667A', '#161623', i * 2.9, 4, .95, 1.1);
-        this.organic(x, y, r * .56 * breath, color, '#837D82', i * 1.7, 3, .55 + integrity * .35, .8);
-        this.glow(x, y, r * .8, color, .45 + integrity * .25);
-        this.fillCircle(x - 2, y - 2, 3 + integrity * 2, '#F5EBD5', .55 + integrity * .4);
-        for (let k = 0; k < 3; k++) {
-          const angle = k * TAU / 3 + i, start = integrity < .7 ? r * .18 : r * .65;
-          this.line(x + Math.cos(angle) * start, y + Math.sin(angle) * start, x + Math.cos(angle + .25) * r, y + Math.sin(angle + .25) * r, integrity < .4 ? '#36222F' : '#12111E', 1.5, .7);
+        const hurt = finite(a.damageFlash) > 0;
+        // Only an actual engine hit can redden the planet. Channel warnings stay outside it.
+        const shudder = hurt && !this.reduced ? Math.sin(this.clock * 65 + i) * 1.2 : 0;
+        this.earth(x + shudder, y, r, i);
+        if (hurt) {
+          const blink = this.reduced ? .48 : .24 + .42 * (.5 + .5 * Math.sin(this.clock * 34));
+          const fade = clamp(a.damageFlash / .12);
+          this.fillCircle(x + shudder, y, r, C.danger, blink * fade);
+          this.circle(x + shudder, y, r + 2, C.danger, 2.2, (.5 + blink * .5) * fade);
+          this.glow(x, y, r * 2.1, C.danger, blink * fade * .36);
         }
         for (const fx of (this.game.effects || []).slice(-32)) {
           if (fx.kind !== 'arc' || finite(fx.age) < finite(fx.delay)) continue;
           const ax = finite(fx.toX, fx.x), ay = finite(fx.toY, fx.y), distance = Math.hypot(ax - x, ay - y);
           if (distance < 220) this.glow(x, y, r * 2.5, C.chain, (1 - distance / 220) * clamp(1 - (fx.age - finite(fx.delay)) / .18) * .38);
         }
-        if(busy)this.label(`고정점 ${i + 1}`, x, y + r + 33, active ? '#FF899B' : '#998AAA', 11, 'center', .9);
-        if (finite(a.damageFlash) > 0) this.circle(x, y, r + 10, C.danger, 3, clamp(a.damageFlash * 4));
+        if (busy) this.label(`행성 ${i + 1}`, x, y + r + 33, active ? '#FF899B' : '#E7B787', 11, 'center', .9);
       } else if (busy) {
         this.clockRing(x, y, r + 12, color, active ? 1 : Math.max(0, ...threats.map(e => clamp(e.channel / 2))), 12, 1, 2.2);
         this.brackets(x, y, r + 20, color, 1, 1.7);
@@ -290,6 +294,37 @@ export class Renderer {
         }
       }
     }
+  }
+
+  earth(x, y, r, index = 0) {
+    const c = this.ctx;
+    this.glow(x, y, r * 2.8, '#528BC4', .17);
+    const ocean = c.createRadialGradient(x - r * .4, y - r * .45, r * .08, x, y, r);
+    ocean.addColorStop(0, '#66BDFA'); ocean.addColorStop(.5, '#2784CC'); ocean.addColorStop(1, '#10395F');
+    this.fillCircle(x, y, r, ocean);
+    c.save(); c.beginPath(); c.arc(x, y, r, 0, TAU); c.clip();
+    c.translate(x, y); c.rotate((index - 1) * .16);
+    const continents = [
+      [[-.95,-.28],[-.74,-.67],[-.33,-.63],[-.1,-.43],[-.22,-.16],[-.38,-.13],[-.32,.1],[-.56,.19],[-.65,-.02],[-.87,.01]],
+      [[-.46,.27],[-.2,.19],[.02,.39],[-.1,.61],[-.35,.93],[-.43,.63],[-.59,.38]],
+      [[.04,-.62],[.35,-.87],[.78,-.61],[1,-.3],[.78,-.13],[.45,-.25],[.24,-.13],[.08,-.34]],
+      [[.04,-.13],[.34,-.07],[.47,.22],[.28,.61],[.03,.48],[-.08,.17]],
+      [[.62,.5],[.84,.38],[1,.61],[.75,.8],[.57,.71]],
+    ];
+    for (const [i, points] of continents.entries()) {
+      c.beginPath(); c.moveTo(points[0][0] * r, points[0][1] * r);
+      for (let k = 1; k < points.length; k++) c.lineTo(points[k][0] * r, points[k][1] * r);
+      c.closePath(); c.fillStyle = i % 2 ? '#80BA70' : '#58A76A'; c.fill();
+    }
+    // Wisps remain clipped inside the circular ocean and do not become extra HUD rings.
+    for (const [cx, cy, size, start, end] of [[-.28,-.47,.53,.05,1.05],[.24,.08,.61,3.1,4.08],[-.11,.56,.57,3.46,4.3]])
+      this.circle(cx * r, cy * r, r * size, '#FFFFFF', 1.5, .7, start, end);
+    const night = c.createRadialGradient(-r * .4, -r * .45, r * .25, r * .3, r * .15, r * 1.4);
+    night.addColorStop(0, 'transparent'); night.addColorStop(.55, '#06192B00'); night.addColorStop(1, '#06192BBF');
+    this.fillCircle(0, 0, r, night);
+    c.restore();
+    this.circle(x, y, r, '#A1D5FF', 1.1, .82);
+    this.circle(x, y, r + 1.8, '#83BDF4', .8, .3);
   }
 
   wardLinks() {
@@ -477,10 +512,27 @@ export class Renderer {
     this.fillCircle(px, py, 2.5, '#FFF2D1', alpha);
   }
 
+  planetOrbit(x, y, r, color, angle = -.35, front = false, alpha = .65) {
+    const c = this.ctx;
+    c.save(); c.translate(x, y); c.rotate(angle); c.strokeStyle = color;
+    c.globalAlpha = alpha; c.lineWidth = 1.3;
+    c.beginPath(); c.ellipse(0, 0, r * 1.7, r * .43, 0, front ? 0 : Math.PI, front ? Math.PI : TAU);
+    c.stroke(); c.restore();
+  }
+
+  rainbowRing(x, y, r, alpha = .92) {
+    const spin = this.reduced ? 0 : this.clock * .45;
+    for (let i = 0; i < 6; i++) {
+      const start = spin + i * TAU / 6;
+      this.circle(x, y, r, `hsl(${i * 60} 100% 72%)`, 2.5, alpha, start, start + TAU / 6 + .015);
+    }
+  }
+
   enemy(e) {
-    const c = this.ctx, r = finite(e.r, e.boss ? 48 : 12), age = finite(e.age), selected = this.previewTargets.has(e.id);
+    const c = this.ctx, r = finite(e.r, e.boss ? 48 : 12), selected = this.previewTargets.has(e.id);
     const statuses = e.statuses || {}, hit = finite(e.hitFlash) > 0;
-    const color = hit ? C.text : statuses.infected ? '#ADB985' : statuses.mark ? '#99C8CD' : statuses.burn || statuses.stroke ? '#D6A48A' : e.adaptation ? '#D6B991' : (enemyColors[e.type] || '#93ABC8');
+    const hue = this.reduced ? 0 : (this.clock * 72 + finite(e.id) * 29) % 360;
+    const color = e.boss ? C.danger : e.elite ? `hsl(${hue} 100% 72%)` : (enemyColors[e.type] || '#F4F6FF');
     let x = finite(e.x), y = finite(e.y);
     // Preview displacement is optical only: no collision, damage or enemy coordinate changes.
     if (selected && this.preview?.id === 'hole' && !this.reduced) {
@@ -490,91 +542,76 @@ export class Renderer {
     }
     if (selected) { this.fillCircle(x, y, r + 5, color, this.high ? .24 : .12); this.circle(x, y, r + 3, color, 1, .45); }
     if (e.boss) { this.boss(e, color); return; }
-    const fill = hit ? '#F0E8DB' : statuses.infected ? '#55634B' : e.elite ? '#6B5D4A' : e.type === 'drifter' ? '#A1A3AC' : '#525564';
-    const tilt = this.reduced ? 0 : Math.sin(age * 1.3 + finite(e.id)) * .12;
-    c.save(); c.translate(x, y); c.rotate(tilt);
-    if (this.high) this.circle(0, 0, r + 1, '#F1F6FF', .9, .65);
-    switch (e.type) {
-      case 'ward':
-        this.organic(0, 0, r, color, fill, e.id, 3, 1, 1.2);
-        this.circle(0, 0, r * .72, color, 2.5, .65, -.85, Math.PI * 1.4);
-        this.fillCircle(0, 0, r * .28, '#B5CBCE', .85); break;
-      case 'channeler':
-        c.save(); c.scale(.7, 1.2); this.organic(0, 0, r, color, fill, e.id, 3, 1, 1.2); c.restore();
-        for (const side of [-1, 1]) {
-          c.beginPath(); c.moveTo(side * r * .25, r * .35); c.quadraticCurveTo(side * r * 1.15, r * .55, side * r * .8, r * 1.2);
-          c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
-        }
-        this.fillCircle(0, -r * .15, 2.5, '#FFCEBD', .9); break;
-      case 'splitter':
-        this.organic(-r * .36, 0, r * .72, color, fill, e.id, 3, 1, .8);
-        this.organic(r * .36, 0, r * .72, color, fill, e.id + 3, 3, 1, .8);
-        this.fillCircle(-r * .35, 0, 1.7, '#D8CCE2', .8); this.fillCircle(r * .35, 0, 1.7, '#D8CCE2', .8); break;
-      case 'scrubber':
-        this.organic(0, 0, r, color, '#526248', e.id, 6, 1, 1.2);
-        this.fillCircle(0, 0, r * .38, '#222B23', .9);
-        for (let i = 0; i < 5; i++) this.fillCircle(Math.cos(i * TAU / 5) * r * .55, Math.sin(i * TAU / 5) * r * .55, 1.4, color, .8); break;
-      case 'jammer':
-        c.beginPath(); c.moveTo(-r * 1.1, r * .4); c.bezierCurveTo(-r, -r, r, -r, r * 1.1, r * .4);
-        c.quadraticCurveTo(0, -r * .22, -r * 1.1, r * .4); c.closePath(); c.fillStyle = fill; c.fill(); c.strokeStyle = color; c.lineWidth = 1.1; c.stroke();
-        this.fillCircle(0, -r * .3, 2, color); break;
-      case 'anchor':
-        this.organic(0, 0, r, color, '#6D6453', e.id, 4, 1, 1.5);
-        this.line(-r * .65, -.2 * r, -.15 * r, .3 * r, '#302B29', 2);
-        this.line(-.15 * r, .3 * r, .45 * r, -.6 * r, '#302B29', 2);
-        this.fillCircle(r * .23, -r * .2, 2.5, '#E6C89B', .8); break;
-      case 'mirror':
-        c.save(); c.scale(.66, 1); this.organic(0, 0, r, color, '#727485', e.id, 2, 1, 1.2); c.restore();
-        this.circle(-r * .13, -r * .18, r * .54, '#E4DEDF', 1.1, .7, Math.PI, Math.PI * 1.6); break;
-      default:
-        this.organic(0, 0, r, color, fill, e.id + (this.reduced ? 0 : age * .12), 3, .93, .7);
-        this.fillCircle(-r * .22, -r * .12, r * .23, '#DDD9D0', .8); break;
+    const stage = finite(this.game.worldTime) >= 420 ? 2 : finite(this.game.worldTime) >= 180 ? 1 : 0;
+    const special = e.type !== 'drifter';
+    const orbit = stage > 0 || ['splitter', 'anchor', 'mirror'].includes(e.type);
+    const angle = -.35 + (finite(e.id) % 5) * .19 + (this.reduced ? 0 : finite(e.age) * .08);
+    if (stage >= 2 || e.elite || e.type === 'channeler' || e.type === 'jammer')
+      this.glow(x, y, r * (e.elite ? 3.2 : 2.7), color, e.elite ? .3 : .13);
+    if (orbit) this.planetOrbit(x, y, r, color, angle, false, e.elite ? .8 : .5);
+    if (e.elite) this.rainbowRing(x, y, r + 7);
+    // Every combat body is one exact circle; only its rings and atmosphere evolve.
+    this.fillCircle(x, y, r, hit ? '#FFFFFF' : color);
+    if (special || stage > 0 || e.elite) {
+      const shade = c.createRadialGradient(x - r * .35, y - r * .4, r * .06, x, y, r);
+      shade.addColorStop(0, '#FFFFFF45'); shade.addColorStop(.42, 'transparent'); shade.addColorStop(1, '#03071690');
+      this.fillCircle(x, y, r, shade);
+      this.circle(x, y, r, color, this.high ? 1.5 : .9, .9);
     }
+    const statusColor = statuses.infected ? '#A6E857' : statuses.mark ? C.chain : statuses.burn || statuses.stroke ? C.impact : null;
+    if (statusColor) this.fillCircle(x, y, r * .94, statusColor, .22);
+    if (orbit) this.planetOrbit(x, y, r, color, angle, true, e.elite ? .8 : .5);
+    if (e.type === 'ward') this.circle(x, y, r + 5, '#75BDFF', 1.4, .6);
+    if (e.type === 'channeler') this.circle(x, y, r + 5, C.danger, 1.3, .68);
+    if (e.type === 'scrubber') this.circle(x, y, r * .65, '#E0FFC2', 1.1, .6);
+    if (e.type === 'jammer') this.circle(x, y, r + 6, '#FF78C9', 2, .45);
+    if (e.type === 'mirror') {
+      this.planetOrbit(x, y, r, color, -angle - .8, false, .38);
+      this.planetOrbit(x, y, r, color, -angle - .8, true, .38);
+    }
+    if (stage >= 2 && !e.elite) this.circle(x, y, r + 9, color, .8, .27);
     if (e.elite) {
-      this.organic(0, 0, r * .6, C.swarm, '#87734D', e.id, 4, .35, .7);
-      this.fillCircle(0, -r - 5, 2, C.swarm, .85);
+      const spin = this.reduced ? 0 : this.clock * .7;
+      for (let i = 0; i < 3; i++) {
+        const a = spin + i * TAU / 3;
+        this.fillCircle(x + Math.cos(a) * (r + 11), y + Math.sin(a) * (r + 11), 1.8, `hsl(${i * 120} 100% 72%)`, .9);
+      }
     }
-    c.restore();
     if (finite(e.shield) > 0) {
       const p = clamp(e.shield / Math.max(1, finite(e.maxShield, e.shield)));
       this.circle(x, y, r + 3, '#74B9EF', 1.6, .65, -.8, -.8 + Math.PI * 1.6 * p);
     }
-    const special = !['drifter', 'splitter'].includes(e.type);
-    if (e.elite || special || finite(e.maxHp) >= 450) this.health(e, color);
-    if (e.elite) this.label('강적', x, y - r - 14, C.swarm, 11, 'center', .85);
+    if (this.high) this.circle(x, y, r + 1, '#F1F6FF', .9, .65);
+    this.health(e, color);
+    if (e.elite) this.label('강적', x, y - r - 18, '#F4F6FF', 11, 'center', .85);
   }
 
   health(e, color) {
-    const c = this.ctx, width = e.boss ? Math.min(136, e.r * 2.5) : Math.max(22, e.r * 2), y = e.y + e.r + (e.boss ? 20 : 9);
-    c.fillStyle = '#181821'; c.fillRect(e.x - width / 2, y, width, e.boss ? 4 : 2);
-    c.fillStyle = color; c.fillRect(e.x - width / 2, y, width * clamp(e.hp / Math.max(1, e.maxHp)), e.boss ? 4 : 2);
+    const c = this.ctx, radius = finite(e.r, e.boss ? 48 : 12);
+    const width = e.boss ? Math.min(136, radius * 2.5) : Math.max(22, radius * 2), y = e.y + radius + (e.boss ? 20 : 9);
+    const height = e.boss ? 4 : this.high ? 3 : 2.5;
+    c.fillStyle = '#30343F'; c.fillRect(e.x - width / 2, y, width, height);
+    c.fillStyle = color; c.fillRect(e.x - width / 2, y, width * clamp(finite(e.hp) / Math.max(1, finite(e.maxHp, e.hp))), height);
   }
 
-  boss(e, color) {
-    const c = this.ctx, x = e.x, y = e.y, r = finite(e.r, 48), age = finite(e.age);
-    const motion = this.reduced ? 0 : age * .15, lobes = e.type === 'archivist' ? 6 : e.type === 'conductor' ? 8 : 3;
-    this.glow(x, y, r * 2.4, color, .13);
-    // Each boss is a massive living nucleus with a distinct silhouette.
-    c.save(); c.translate(x, y); c.rotate(motion);
-    for (let i = 0; i < lobes; i++) {
-      const a = i * TAU / lobes, length = r * (e.type === 'reality' ? 1.5 : 1.25);
-      c.beginPath(); c.moveTo(Math.cos(a - .3) * r * .5, Math.sin(a - .3) * r * .5);
-      c.bezierCurveTo(Math.cos(a - .23) * length, Math.sin(a - .23) * length,
-        Math.cos(a + .23) * length, Math.sin(a + .23) * length,
-        Math.cos(a + .3) * r * .5, Math.sin(a + .3) * r * .5);
-      c.closePath(); c.fillStyle = e.type === 'conductor' ? '#69624B' : e.type === 'archivist' ? '#5A5268' : '#6A414E';
-      c.fill(); c.strokeStyle = color; c.lineWidth = 1.2; c.globalAlpha = .85; c.stroke();
-      this.line(Math.cos(a) * r * .5, Math.sin(a) * r * .5, Math.cos(a) * length * .8, Math.sin(a) * length * .8, '#211D28', 2, .7);
-    }
-    this.organic(0, 0, r * .75, color, '#242332', 1 + motion, lobes, 1, 1.6);
-    this.fillCircle(0, 0, r * .42, '#090B14');
-    this.circle(0, 0, r * .43, '#CEC4B9', 1.4, .7, -.4, Math.PI * 1.5);
-    this.glow(0, 0, r * .34, color, .6);
-    this.organic(0, 0, r * .16, '#F5DFD6', color, motion * 3, 3, 1, 1.2);
-    c.restore();
+  boss(e, color = C.danger) {
+    const c = this.ctx, x = e.x, y = e.y, r = finite(e.r, 48);
+    const motion = this.reduced ? 0 : finite(e.age) * .12;
+    this.glow(x, y, r * 2.8, C.danger, .24);
+    for (let i = 0; i < 2; i++) this.planetOrbit(x, y, r * (1.13 + i * .16), C.danger, motion + i * .8, false, .72 - i * .2);
+    const surface = c.createRadialGradient(x - r * .35, y - r * .4, r * .05, x, y, r);
+    surface.addColorStop(0, '#E66477'); surface.addColorStop(.35, '#A62645'); surface.addColorStop(1, '#270913');
+    this.fillCircle(x, y, r, surface);
+    this.circle(x, y, r, C.danger, 2.3, 1);
+    this.circle(x, y, r * .78, '#FF8C9C', 1.1, .4, motion, motion + Math.PI * 1.4);
+    for (let i = 0; i < 2; i++) this.planetOrbit(x, y, r * (1.13 + i * .16), C.danger, motion + i * .8, true, .72 - i * .2);
+    this.circle(x, y, r + 13, C.danger, 1, .32);
+    if (e.type === 'reality') this.circle(x, y, r + 21, '#FF7A8F', 1.5, .55);
+    if (finite(e.hitFlash) > 0) this.fillCircle(x, y, r, '#FFFFFF', .35);
+    if (e.statuses?.infected) this.fillCircle(x, y, r * .94, C.infection, .16);
     if (finite(e.shield) > 0) this.circle(x, y, r + 5, '#83A4B5', 2, .6, 0, TAU * clamp(e.shield / Math.max(1, finite(e.maxShield, e.shield))));
     if (this.high) this.circle(x, y, r + 2, C.text, 1, .7);
-    this.label(enemyNames[e.type] || '세계의 핵', x, y - r * 1.4 - 15, color, 12, 'center');
+    this.label(enemyNames[e.type] || '보스 행성', x, y - r - 31, color, 12, 'center');
     this.health(e, color);
   }
 
@@ -736,7 +773,8 @@ export class Renderer {
         break;
       }
       case 'spawn':
-        this.organic(x, y, r * (this.reduced ? 1 : .6 + p * .4), color, color, x * .04, 4, alpha * .12, .8); break;
+        this.fillCircle(x, y, r * (this.reduced ? 1 : .6 + p * .4), color, alpha * .1);
+        this.circle(x, y, r * (this.reduced ? 1 : .6 + p * .4), color, .8, alpha * .2); break;
       case 'heal': this.glow(x, y, r, color, alpha * .12); this.inwardDust(x, y, r * .7, color, age, alpha * .6); break;
       case 'hit':
         this.fillCircle(x, y, 3.5, '#F7EEE1', alpha * .8);

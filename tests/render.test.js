@@ -194,14 +194,97 @@ test('ring telegraphs keep their actual future hit radius in both motion modes',
   }
 });
 
-test('idle cursor stays small and weak normal enemies carry no HUD labels or health bars', () => {
+test('idle cursor stays small and even the first white enemy has an accurate compact health bar', () => {
   const game = fixture(); game.enemies = []; game.effects = [];
   const enemy = game.spawnEnemy('drifter', { x: 644, y: 350, hp: 60, maxHp: 100 });
   enemy.maxHp = 100; game.effects = [];
   const trace = stableDraw(game);
   assert.ok(!trace.arcs.some(a => a.args[0] === 640 && a.args[1] === 350 && a.args[2] >= 7));
   assert.ok(!trace.texts.some(t => Math.hypot(t.x - enemy.x, t.y - enemy.y) < 60));
-  assert.ok(!trace.operations.some(o => o[0] === 'fillRect' && o[2] === enemy.y + enemy.r + 9));
+  const bars = trace.operations.filter(o => o[0] === 'fillRect' && o[2] === enemy.y + enemy.r + 9);
+  assert.equal(bars.length, 4, 'Both read-only draws must include a background and HP fill');
+  const width = Math.max(22, enemy.r * 2);
+  assert.equal(bars[0][3], width);
+  assert.equal(bars[1][3], width * .6);
+  assert.ok(trace.fills.some(f => f.style === '#F4F6FF' && f.path.some(p => p[0] === 'arc' && p[1] === enemy.x && p[2] === enemy.y && p[3] === enemy.r)));
+});
+
+test('all combat bodies stay circular, including special, elite and boss planets', () => {
+  for (const type of [...Object.keys(ENEMIES), 'archivist', 'conductor', 'reality']) {
+    const game = fixture(); game.enemies = []; game.effects = [];
+    const enemy = game.spawnEnemy(type, { x: 650, y: 300, r: 20, boss: ['archivist', 'conductor', 'reality'].includes(type), elite: type === 'ward', hp: 60, maxHp: 100 });
+    const canvas = fakeCanvas(), renderer = new Renderer(canvas);
+    renderer.game = game; renderer.previewTargets = new Set(); renderer.reduced = true;
+    renderer.enemy(enemy);
+    assert.ok(canvas.trace.fills.some(f => f.path.length === 1 && f.path[0][0] === 'arc' && f.path[0][1] === enemy.x && f.path[0][2] === enemy.y && f.path[0][3] === enemy.r && f.path[0][4] === 0 && f.path[0][5] === Math.PI * 2), `${type} is missing its circular body`);
+    assert.ok(canvas.trace.fills.every(f => f.path.every(p => p[0] === 'arc')), `${type} has a noncircular filled silhouette`);
+    assert.equal(canvas.trace.operations.filter(o => o[0] === 'fillRect').length, 2, `${type} must retain its HP bar`);
+    assert.equal(canvas.stack.length, 0);
+  }
+});
+
+test('normal planets begin as plain white circles, then gain rings and atmosphere as the world progresses', () => {
+  const stages = [];
+  for (const worldTime of [0, 180, 420]) {
+    const game = fixture(); game.enemies = []; game.effects = []; game.worldTime = worldTime;
+    const enemy = game.spawnEnemy('drifter', { x: 650, y: 300 });
+    const canvas = fakeCanvas(), renderer = new Renderer(canvas);
+    renderer.game = game; renderer.previewTargets = new Set(); renderer.reduced = true;
+    renderer.enemy(enemy); stages.push(canvas.trace);
+  }
+  assert.equal(stages[0].operations.filter(o => o[0] === 'ellipse').length, 0);
+  assert.equal(stages[0].fills.length, 1);
+  assert.equal(stages[1].operations.filter(o => o[0] === 'ellipse').length, 2);
+  assert.ok(stages[2].arcs.some(a => a.args[2] === 20), 'Late normal enemies need an atmosphere ring outside the 11px body');
+  assert.ok(stages[2].fills.length > stages[1].fills.length, 'Late planets need a soft aura');
+});
+
+test('rainbow elites and red bosses keep their importance colors while infected', () => {
+  for (const boss of [false, true]) {
+    const game = fixture(); game.enemies = []; game.effects = [];
+    const enemy = game.spawnEnemy(boss ? 'reality' : 'ward', { x: 650, y: 300, boss, elite: !boss, r: 22 });
+    game.status(enemy, 'infected', { remaining: 2, duration: 3 });
+    const trace = stableDraw(game);
+    if (boss) assert.ok(trace.strokes.some(s => s.style === '#FF425B' && s.path.some(p => p[0] === 'arc' && p[1] === enemy.x && p[2] === enemy.y && p[3] === enemy.r)));
+    else assert.equal(new Set(trace.strokes.filter(s => s.style.startsWith('hsl(') && s.path.some(p => p[0] === 'arc' && p[3] === enemy.r + 7)).map(s => s.style)).size, 6);
+  }
+});
+
+test('Earth planets redden only after real damage and stop after the engine hit flash expires', () => {
+  for (const reducedMotion of [false, true]) {
+    const game = fixture('bomb', { reducedMotion }); game.enemies = []; game.effects = [];
+    const a = game.anchors[0]; game.integrity = 10; a.channeling = true;
+    const drawPlanet = () => {
+      const canvas = fakeCanvas(), renderer = new Renderer(canvas);
+      renderer.game = game; renderer.reduced = reducedMotion; renderer.clock = 1;
+      renderer.anchors(false); return canvas.trace;
+    };
+    const redBody = trace => trace.fills.filter(f => f.style === '#FF425B' && f.path.some(p => p[0] === 'arc' && Math.hypot(p[1] - a.x, p[2] - a.y) < 2 && p[3] === a.r));
+    const before = drawPlanet();
+    assert.equal(redBody(before).length, 0, 'Low integrity and a threat must not cause a false hurt tint');
+    assert.ok(before.fills.some(f => f.style === '#58A76A'), 'Earth continents are missing');
+    assert.ok(before.strokes.some(s => s.style === '#A1D5FF'), 'Earth atmosphere is missing');
+    game.hitAnchor(0, 1, 'test');
+    assert.ok(a.damageFlash > 0);
+    assert.equal(redBody(drawPlanet()).length, 1, 'An actual hit needs a red hurt overlay');
+    game.spawnTimer = 999;
+    for (let i = 0; i < 4; i++) game.update(.1);
+    assert.equal(a.damageFlash, 0);
+    assert.equal(redBody(drawPlanet()).length, 0, 'The hurt tint must end with the actual flash');
+  }
+});
+
+test('canvas aspect ratios preserve circle proportions with a uniform arena transform', () => {
+  for (const [width, height] of [[1280, 720], [390, 844]]) {
+    const game = fixture(), canvas = fakeCanvas(1);
+    canvas.width = width; canvas.height = height;
+    new Renderer(canvas).draw(game, 1 / 60);
+    const transforms = canvas.trace.operations.filter(o => o[0] === 'setTransform');
+    const arena = transforms.at(-1);
+    assert.equal(arena[1], arena[4]);
+    assert.ok(arena[1] > 0);
+    assert.equal(canvas.stack.length, 0);
+  }
 });
 
 test('targeting renders exact twin hole volumes, affected creatures, and never moves combat objects', () => {

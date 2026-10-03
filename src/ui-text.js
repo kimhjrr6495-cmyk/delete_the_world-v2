@@ -15,7 +15,7 @@ const EVOLUTION_NAMES = Object.freeze({
 const RULE_NAMES = Object.freeze({
   conductive_scar: '전도 흉터', origin_echo: '원점 반향', spore_census: '포자 집계', patient_zero: '최초 숙주', orbit_shear: '궤도 전단', event_horizon: '사건의 지평', target_lease: '표적 지정', relay_beacon: '중계점', overkill: '초과 삭제', precision_window: '정밀 타격', after_cast: '시전 후속', alternating_circuit: '교대 회로',
   contagion_circuit: '감염 회로', orbit_relay: '궤도 중계', relay_hunt: '중계 사냥', railgun_scar: '관통 흉터', echo_order: '반향 명령', quarantine_collapse: '격리 붕괴', parasite_hive: '기생 군집', patient_zero_strike: '최초 타격', delayed_script: '지연 기폭', cross_gravity: '교차 중력',
-  crossed_wires: '교차 배선', lens: '기억 렌즈', time_capsule: '시간 캡슐', anchor_heart: '고정점 심장', swarm_clock: '군집 시계', hollow_crown: '공허 왕관',
+  crossed_wires: '교차 배선', lens: '기억 렌즈', time_capsule: '시간 캡슐', anchor_heart: '행성 심장', swarm_clock: '군집 시계', hollow_crown: '공허 왕관',
   chain_voltage: '전압', chain_recharge: '충전 회복', infection_potency: '독성', infection_space: '감염 공간', gravity_depth: '중력 깊이', gravity_reach: '중력 도달', swarm_payload: '포격 적재', swarm_support: '지원 펄스', impact_force: '타격력', impact_critical: '치명각', caster_payload: '시전 무게', caster_flow: '시전 흐름', integrity_buffer: '안정도 보강', emergency_patch: '긴급 복구',
   stable_supply: '안정 보급', elite_seal: '엘리트 봉합', forbidden_rift: '금지 균열', final_stroke: '최종 타격', rewrite_sequence: '시전 재작성', reserve_core: '진화 코어 보관',
 });
@@ -36,10 +36,10 @@ const OPTION_SUMMARIES = Object.freeze({
   cluster: '본 폭발은 170 피해. 생존 적 2곳에 90 피해의 작은 폭탄을 더합니다.',
   compression: '반경을 55px로 줄이고 중심 피해를 340으로 올립니다.',
   twin: '반경 85px의 두 홀로 나눕니다. 흡입·피해는 각각 70%, 겹친 적은 가까운 홀 하나만 적용됩니다.',
-  anchor: '반경 145px의 한 홀로 넓게 흡입합니다. 고정점 앞 적들을 모으기 좋습니다.',
+  anchor: '반경 145px의 한 홀로 넓게 흡입합니다. 행성 앞 적들을 모으기 좋습니다.',
   lattice: '130 피해의 주선과 수직선 2개를 긋습니다. 교점의 한 적은 최대 220 피해를 받습니다.',
   razor: '길이 460px·폭 12px의 가는 선으로 285 피해를 줍니다.',
-  watchtower: '가까운 고정점에 명령 구역을 설치하고 채널링 중인 적을 먼저 포격합니다.',
+  watchtower: '가까운 행성에 명령 구역을 설치하고 채널링 중인 적을 먼저 포격합니다.',
   hunter: '명령 구역이 우선 목표를 따라갑니다. 착탄 예고가 0.15초 길어집니다.',
   carrier: '서로 다른 두 적에게 65% 감염을 옮깁니다. 옮겨진 감염은 재전파하지 않습니다.',
   reservoir: '전파를 멈추고 처음 숙주의 초당 피해 +10, 기폭 피해 +70.',
@@ -184,14 +184,14 @@ for (const rule of RULES) { words.set(rule.name, RULE_NAMES[rule.id] ?? koreanPa
 for (const tag of Object.keys(TAGS)) words.set(tag, tagName(tag));
 for (const [id, enemy] of Object.entries(ENEMIES)) { words.set(enemy.name, enemyName(id)); words.set(enemy.name.toUpperCase(), enemyName(id)); }
 for (const [term, name] of Object.entries({
-  'DIRECT DELETE': '직접 공격', 'CROSS NETWORK': '십자망', 'INITIAL ANOMALY': '시작 스킬', 'REALITY ENGINE': '현실 기관', 'THE ARCHIVIST': '기록 보관자', 'THE CONDUCTOR': '봉합 지휘자', 'PRIORITY TARGET': '우선 목표', 'WORLD CORE': '세계 핵', 'INTEGRITY LEAK': '안정도 손상', 'CHANNEL INCOMING': '채널 준비', 'SET POINT B': '두 번째 점 지정', 'WEAKNESS OPEN': '약점 열림', 'ANCHOR BREACH': '고정점 공격', 'INTEGRITY THREAT': '안정도 위험', 'CONTROLLED COLLAPSE': '제어 붕괴', 'RELAY BEACON': '중계점', 'RECORD': '기록 폭발', 'NETWORK': '십자망', 'MEMORY': '기억', 'VOID': '경험치', 'REWRITE': '다시 쓰기', 'Final': '최종', 'FINAL': '최종', 'EVOLUTION I': '1진화', 'EVOLUTION II': '2진화', 'EVOLUTION III': '최종', 'SKILL': '스킬', 'SUMMON': '소환', 'DIRECT': '직접 공격', 'AUTO': '자동 펄스', 'STATUS': '상태 효과', 'EMPTY': '없음', 'READY': '준비', 'BASE': '기본', 'EVO': '진화', 'ECHO': '잔향', 'ARMED': '설치', 'MASS': '질량', 'ROUTE': '출발점', 'RELOCATE': '다시 배치', 'PHASE': '단계', 'PRIORITY': '우선 목표', 'FULL': '완충', 'CHARGED': '강타', 'TAP': '탭', 'HOLD': '누르기',
+  'DIRECT DELETE': '직접 공격', 'CROSS NETWORK': '십자망', 'INITIAL ANOMALY': '시작 스킬', 'REALITY ENGINE': '현실 기관', 'THE ARCHIVIST': '기록 보관자', 'THE CONDUCTOR': '봉합 지휘자', 'PRIORITY TARGET': '우선 목표', 'WORLD CORE': '세계 핵', 'INTEGRITY LEAK': '안정도 손상', 'CHANNEL INCOMING': '채널 준비', 'SET POINT B': '두 번째 점 지정', 'WEAKNESS OPEN': '약점 열림', 'ANCHOR BREACH': '행성 공격', 'INTEGRITY THREAT': '안정도 위험', 'CONTROLLED COLLAPSE': '제어 붕괴', 'RELAY BEACON': '중계점', 'RECORD': '기록 폭발', 'NETWORK': '십자망', 'MEMORY': '기억', 'VOID': '경험치', 'REWRITE': '다시 쓰기', 'Final': '최종', 'FINAL': '최종', 'EVOLUTION I': '1진화', 'EVOLUTION II': '2진화', 'EVOLUTION III': '최종', 'SKILL': '스킬', 'SUMMON': '소환', 'DIRECT': '직접 공격', 'AUTO': '자동 펄스', 'STATUS': '상태 효과', 'EMPTY': '없음', 'READY': '준비', 'BASE': '기본', 'EVO': '진화', 'ECHO': '잔향', 'ARMED': '설치', 'MASS': '질량', 'ROUTE': '출발점', 'RELOCATE': '다시 배치', 'PHASE': '단계', 'PRIORITY': '우선 목표', 'FULL': '완충', 'CHARGED': '강타', 'TAP': '탭', 'HOLD': '누르기',
 })) words.set(term, name);
 for (const [word, replacement] of [...words]) if (/[A-Za-z]/.test(word)) words.set(word.toUpperCase(), replacement);
 const wordPatterns = [...words].sort(([a], [b]) => b.length - a.length).map(([word, replacement]) => [new RegExp(`(^|[^A-Za-z0-9_])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_])`, 'g'), replacement]);
 export function displayText(value) {
   let text = String(value ?? '');
   for (const [pattern, replacement] of wordPatterns) text = text.replace(pattern, (_, prefix) => prefix + replacement);
-  return text.replaceAll('무결성', '안정도').replaceAll('호스트', '숙주').replaceAll('쿨다운', '재사용 대기').replaceAll('재사용 대기과', '재사용 대기와').replaceAll('태그', '속성').replaceAll('하이브리드', '조합').replaceAll('메서드', '특성').replaceAll('스킬 홀드', '스킬 키를 누른 채').replaceAll('내부 재사용 대기', '효과 재사용 대기').replaceAll('직접 삭제', '직접 공격').replaceAll('압력', '위협').replaceAll('직접 공격가', '직접 공격이').replaceAll('직접 공격를', '직접 공격을').replaceAll('직접 공격로', '직접 공격으로').replaceAll('속성가', '속성이').replaceAll('속성를', '속성을');
+  return text.replaceAll('고정점', '행성').replaceAll('무결성', '안정도').replaceAll('호스트', '숙주').replaceAll('쿨다운', '재사용 대기').replaceAll('재사용 대기과', '재사용 대기와').replaceAll('태그', '속성').replaceAll('하이브리드', '조합').replaceAll('메서드', '특성').replaceAll('스킬 홀드', '스킬 키를 누른 채').replaceAll('내부 재사용 대기', '효과 재사용 대기').replaceAll('직접 삭제', '직접 공격').replaceAll('압력', '위협').replaceAll('직접 공격가', '직접 공격이').replaceAll('직접 공격를', '직접 공격을').replaceAll('직접 공격로', '직접 공격으로').replaceAll('속성가', '속성이').replaceAll('속성를', '속성을');
 }
 export function coreSummary(id) {
   const resolved = skillId(id);
@@ -263,11 +263,11 @@ export function guidePages({ skill0 = 'E', skill1 = 'Q', network = 'T', pause = 
   const pace = quick ? 3 : 1, at = seconds => timeLabel(seconds / pace);
   return [
     {
-      id: 'basics', title: '시작', lead: '세 고정점을 지키며 적을 지우세요. 안정도가 0이 되면 끝납니다.',
+      id: 'basics', title: '시작', lead: '지구처럼 생긴 행성 3개를 지키세요. 안정도가 0이 되면 끝납니다.',
       steps: [
         { title: '스킬 하나 선택', text: `시작 카드를 고르면 바로 전투가 시작됩니다. 첫 스킬은 ${skill0}입니다.` },
         { title: '능력 펼치기', text: `${skill0}로 조준을 시작하세요. 필드의 경로와 범위를 보고 클릭하면 능력이 펼쳐집니다.` },
-        { title: '고정점 방어', text: '적색 경고가 뜨면 채널러를 직접 공격하거나 스킬로 끊으세요.' },
+        { title: '행성 방어', text: '적색 경고가 뜨면 채널러를 직접 공격하거나 스킬로 끊으세요.' },
       ],
       cards: [
         { title: '직접 공격', text: '조준 중이 아니면 클릭으로 공격합니다. 0.8초 홀드는 강타. 충전 2개, 기본 회복은 충전당 2.8초입니다.' },
@@ -304,13 +304,13 @@ export function guidePages({ skill0 = 'E', skill1 = 'Q', network = 'T', pause = 
     {
       id: 'world', title: '세계', lead: '일부 적에게 저항이 생깁니다. 표시된 약점으로 공격하세요.',
       steps: [
-        { title: '채널을 끊기', text: '채널러는 고정점 앞에서 2초 준비한 뒤 안정도를 깎습니다. 준비 중 직접 공격으로 방해하세요.' },
+        { title: '채널을 끊기', text: '채널러는 행성 앞에서 2초 준비한 뒤 안정도를 깎습니다. 준비 중 직접 공격으로 방해하세요.' },
         { title: '약점으로 전환', text: '일부 적의 저항 속성 피해는 25% 줄고, 표시된 약점 속성 피해는 30% 늘어납니다.' },
         { title: '마지막 보스 삭제', text: `${at(1080)}에 현실 기관이 등장합니다. 등장 뒤 120초 안에 처치하면 승리합니다.` },
       ],
       cards: [
         { title: '보호 연결', text: '보호자는 주변 적을 지킵니다. 보호자를 직접 공격으로 처치하거나 절단으로 연결을 끊으세요.' },
-        { title: '위협', text: '처치하면 위협이 줄어듭니다. 위협 100에서는 고정점이 지속적으로 손상됩니다.' },
+        { title: '위협', text: '처치하면 위협이 줄어듭니다. 위협 100에서는 행성이 지속적으로 손상됩니다.' },
         { title: '보스의 공통 균열', text: '적색 공격 예고 중 열린 보스를 직접 공격하면 예고된 공격과 그 증원을 중단합니다.' },
       ],
       note: `세계 저항은 ${quick ? '10' : '30'}초 전에 예고됩니다. 적의 빛과 입자로 변화를 보고, ESC에서 저항과 약점의 정확한 수치를 확인하세요.`,
@@ -321,20 +321,20 @@ export function guidePages({ skill0 = 'E', skill1 = 'Q', network = 'T', pause = 
       ],
     },
     {
-      id: 'records', title: '기록', lead: '한 판을 마치면 기억을 얻습니다. 연구와 발견 기록은 다음 판으로 이어집니다.',
+      id: 'records', title: '기록', lead: '한 판을 마치면 기억을 얻습니다. 업그레이드와 발견 기록은 다음 판으로 이어집니다.',
       steps: [
         { title: '결과 확인', text: '삭제 수·지속 시간·점수·획득한 기억을 확인합니다. 펼친 분석에서는 피해 경로와 마지막 빌드를 볼 수 있습니다.' },
-        { title: '연구하기', text: '연구 화면에서 기억을 써 충전 회복 속도와 시작 경험치를 올립니다.' },
+        { title: '업그레이드하기', text: '업그레이드 화면에서 기억을 써 충전 회복 속도와 시작 경험치를 올립니다.' },
         { title: '새 세계 시작', text: '다시 시작에서 새 스킬을 고르거나, 같은 시드로 다시 도전할 수 있습니다.' },
       ],
       cards: [
-        { title: '충전 회복', text: '단계당 직접 공격 충전 회복 속도 +2%. 최대 5단계입니다.' },
-        { title: '시작 경험치', text: '단계당 시작 경험치 +4. 최대 5단계입니다.' },
+        { title: '빠른 충전', text: '강화 단계당 직접 공격 충전 회복 속도 +2%. 최대 5단계입니다.' },
+        { title: '시작 보너스', text: '강화 단계당 시작 경험치 +4. 최대 5단계입니다.' },
         { title: '연습', text: '기본부터 최종까지 바로 연습합니다. 안정도 손상·성장 선택·기억 정산은 없습니다.' },
       ],
-      note: '기억·연구·설정은 현재 브라우저와 사이트 주소에 저장됩니다.',
+      note: '기억·업그레이드·설정은 현재 브라우저와 사이트 주소에 저장됩니다.',
       details: [
-        { title: '연구 비용', text: '각 연구는 현재 단계 0부터 5까지 성장합니다. 다음 단계 비용은 5 + 현재 단계×3 기억입니다. 연구 보너스는 다음 판 시작에 적용됩니다.' },
+        { title: '업그레이드 비용', text: '각 업그레이드는 0단계부터 최대 5단계까지 강화합니다. 다음 단계 비용은 5 + 현재 단계×3 기억입니다. 강화 효과는 다음 판 시작에 적용됩니다.' },
         { title: '기억 획득', text: '기본 획득량은 삭제 35개당 1 + 지속 90초당 1 + 승리 보너스 12입니다. 승리·삭제 5개·지속 20초 중 하나를 충족하면 최소 1을 받습니다. 아주 짧은 무처치 판은 0입니다.' },
         { title: '시드와 저장', text: '같은 시드는 난수 출발점을 재현합니다. 같은 결과에는 같은 입력과 타이밍도 필요합니다. 브라우저·사이트 주소·포트가 바뀌면 기록은 공유되지 않습니다. 저장 실패는 결과 화면에서 알립니다.' },
         { title: '실험실과 접근성', text: '실험실 표적은 6초마다 보충되며 이동 저항 보스는 체력 4800입니다. 보조 스킬은 2진화 이하라 최종은 하나입니다. 설정에서 키·효과음·저동작·저효과·고대비를 바꿀 수 있습니다.' },

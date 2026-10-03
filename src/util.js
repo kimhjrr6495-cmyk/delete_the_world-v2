@@ -7,3 +7,15 @@ export function lineDistance(x,y,x1,y1,x2,y2) { const dx=x2-x1,dy=y2-y1; const t
 export const formatTime=(t)=>`${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`;
 export const sourceTag={DIRECT:'IMPACT',AUTO:'CASTER',SKILL:'CASTER',SUMMON:'SWARM',STATUS:'INFECTION'};
 export function weightedPick(items,rng) { let total=items.reduce((n,i)=>n+i.weight,0),roll=rng()*total; for(const item of items) {roll-=item.weight;if(roll<=0)return item;}return items.at(-1); }
+
+// Fit the whole arena with one scale so planets and attack ranges stay circular.
+export function arenaViewport(pixelWidth,pixelHeight,worldWidth=1280,worldHeight=760) {
+  const scale=Math.max(0,Math.min(pixelWidth/worldWidth,pixelHeight/worldHeight));
+  return {scale,offsetX:(pixelWidth-worldWidth*scale)/2,offsetY:(pixelHeight-worldHeight*scale)/2};
+}
+export function arenaPoint(rect,clientX,clientY,worldWidth=1280,worldHeight=760) {
+  const view=arenaViewport(rect.width,rect.height,worldWidth,worldHeight);
+  if(!view.scale)return {x:worldWidth/2,y:worldHeight/2,inside:false};
+  const x=(clientX-rect.left-view.offsetX)/view.scale,y=(clientY-rect.top-view.offsetY)/view.scale;
+  return {x,y,inside:x>=0&&x<=worldWidth&&y>=0&&y<=worldHeight};
+}
