@@ -5,7 +5,7 @@ import { Renderer } from '../src/render.js';
 import { SKILLS, ENEMIES } from '../src/data.js';
 
 function fakeCanvas(scale = 2) {
-  const trace = { texts: [], strokes: [], arcs: [], operations: [] };
+  const trace = { texts: [], strokes: [], fills: [], arcs: [], operations: [] };
   const state = { globalAlpha: 1, lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', dash: [] };
   const stack = [];
   let path = [];
@@ -24,6 +24,7 @@ function fakeCanvas(scale = 2) {
       path.push(['arc', ...args]); trace.arcs.push({ args, style: state.strokeStyle, alpha: state.globalAlpha });
     },
     stroke() { trace.strokes.push({ path: path.map(p => [...p]), style: state.strokeStyle, width: state.lineWidth, dash: [...state.dash], alpha: state.globalAlpha }); },
+    fill() { trace.fills.push({ path: path.map(p => [...p]), style: state.fillStyle, alpha: state.globalAlpha }); },
     fillText(text, x, y) { numeric('fillText', [x, y]); trace.texts.push({ text: String(text), x, y, style: state.fillStyle, alpha: state.globalAlpha }); },
     createRadialGradient(...args) { numeric('createRadialGradient', args); return { addColorStop(position) { assert.ok(Number.isFinite(position) && position >= 0 && position <= 1); } }; },
   };
@@ -145,7 +146,7 @@ test('danger and cursor signals survive effect overload and render after cosmeti
   assert.ok(trace.arcs.some(a => a.args[0] === 640 && a.args[1] === 350 && a.args[2] === 70 && a.style === '#FF425B'));
 });
 
-test('crowded low-effects preserves distant adaptation weakness and priority infection timer', () => {
+test('crowded low-effects preserves weakness seams and infection spores without status counters', () => {
   const game = fixture('seed', { lowEffects: true }); game.enemies = [];
   for (let i = 0; i < 180; i++) game.spawnEnemy('drifter', { x: 35 + i % 30 * 40, y: 120 + Math.floor(i / 30) * 80, hp: 500 });
   const adaptive = game.enemies[0]; adaptive.adaptation = 'CHAIN'; adaptive.weakness = 'IMPACT';
@@ -153,9 +154,9 @@ test('crowded low-effects preserves distant adaptation weakness and priority inf
   game.status(priority, 'infected', { duration: 5, remaining: 4, stacks: 2 });
   for (const enemy of game.enemies.slice(2)) game.status(enemy, 'infected', { duration: 3, remaining: 2 });
   const trace = stableDraw(game);
-  assert.ok(trace.texts.some(t => t.text === '충격' && t.x > adaptive.x));
-  assert.ok(trace.texts.some(t => t.text === '4s'));
-  assert.ok(trace.texts.some(t => t.text.startsWith('×')));
+  assert.ok(trace.strokes.some(s => s.style === '#FF8C6B' && s.path.some(p => p[0] === 'moveTo' && p[1] === adaptive.x + adaptive.r * .5 && p[2] === adaptive.y - adaptive.r * .45)));
+  assert.ok(trace.fills.some(f => f.style === '#AEC58E' && f.path.some(p => p[0] === 'arc' && Math.hypot(p[1] - priority.x, p[2] - priority.y) < 35)));
+  assert.ok(!trace.texts.some(t => t.text === '4s' || t.text.startsWith('×')));
 });
 
 test('channel warning is incoming for the full two-second grace period', () => {
@@ -191,4 +192,72 @@ test('ring telegraphs keep their actual future hit radius in both motion modes',
     assert.ok(circles.length);
     assert.ok(circles.every(a => a.args[2] === 44));
   }
+});
+
+test('idle cursor stays small and weak normal enemies carry no HUD labels or health bars', () => {
+  const game = fixture(); game.enemies = []; game.effects = [];
+  const enemy = game.spawnEnemy('drifter', { x: 644, y: 350, hp: 60, maxHp: 100 });
+  enemy.maxHp = 100; game.effects = [];
+  const trace = stableDraw(game);
+  assert.ok(!trace.arcs.some(a => a.args[0] === 640 && a.args[1] === 350 && a.args[2] >= 7));
+  assert.ok(!trace.texts.some(t => Math.hypot(t.x - enemy.x, t.y - enemy.y) < 60));
+  assert.ok(!trace.operations.some(o => o[0] === 'fillRect' && o[2] === enemy.y + enemy.r + 9));
+});
+
+test('targeting renders exact twin hole volumes, affected creatures, and never moves combat objects', () => {
+  for (const settings of [{}, { lowEffects: true, reducedMotion: true }, { highContrast: true }]) {
+    const game = fixture('hole', settings), slot = game.skillSlots[0]; slot.branch = 'twin';
+    assert.equal(game.skills.beginTarget(0), true);
+    const preview = game.skills.targetingPreview;
+    assert.equal(preview.circles.length, 2);
+    const trace = stableDraw(game);
+    for (const circle of preview.circles) assert.ok(trace.arcs.some(a => a.args[0] === circle.x && a.args[1] === circle.y && a.args[2] === circle.r));
+    assert.ok(preview.targets.length > 0);
+  }
+});
+
+test('cut preview uses actual line hitboxes and never invents a circular base damage zone', () => {
+  const game = fixture('cut'); game.effects = [];
+  assert.equal(game.skills.beginTarget(0), true);
+  game.cursor.x += 70; game.cursor.y += 35;
+  const preview = game.skills.targetingPreview, line = preview.lines[0], trace = stableDraw(game);
+  assert.ok(trace.strokes.some(s => s.path.some(p => p[0] === 'moveTo' && p[1] === line.x && p[2] === line.y) && s.path.some(p => p[0] === 'lineTo' && p[1] === line.x2 && p[2] === line.y2)));
+  assert.ok(!trace.arcs.some(a => a.args[0] === preview.x && a.args[1] === preview.y && a.args[2] === preview.r));
+});
+
+test('arc delay hides later hops until their visual turn and discharge draws at the fixed endpoint', () => {
+  const canvas = fakeCanvas(), renderer = new Renderer(canvas); renderer.low = false;
+  renderer.effect({ kind: 'arc', x: 100, y: 100, toX: 200, toY: 200, age: .02, delay: .065, maxLife: .285, color: '#5EE3FF' });
+  assert.equal(canvas.trace.strokes.length, 0);
+  renderer.effect({ kind: 'arc', x: 100, y: 100, toX: 200, toY: 200, age: .145, delay: .065, maxLife: .285, color: '#5EE3FF' });
+  assert.ok(canvas.trace.strokes.some(s => s.path.some(p => p[0] === 'lineTo' && p[1] === 200 && p[2] === 200)));
+  renderer.effect({ kind: 'discharge', x: 200, y: 200, r: 18, age: .03, maxLife: .22, color: '#5EE3FF' });
+  assert.ok(canvas.trace.fills.some(f => f.path.some(p => p[0] === 'arc' && p[1] === 200 && p[2] === 200)));
+  assert.equal(canvas.stack.length, 0);
+});
+
+test('Final needle circuit previews the chosen origin to its single real target', () => {
+  const game = fixture('overcharge'), slot = game.skillSlots[0]; slot.branch = 'needle'; slot.evolution = 3;
+  assert.equal(game.skills.beginTarget(0), true);
+  assert.equal(game.skills.confirmTarget(), true);
+  game.cursor.x = 810; game.cursor.y = 400;
+  assert.equal(game.skills.beginTarget(0), true);
+  game.effects = [];
+  const preview = game.skills.targetingPreview;
+  assert.equal(preview.mode, 'circuit'); assert.equal(preview.chain.length, 1);
+  const endpoint = preview.chain[0], trace = stableDraw(game);
+  assert.ok(trace.strokes.some(s => s.style === '#5EE3FF' && s.path[0]?.[0] === 'moveTo' && s.path[0][1] === preview.x && s.path[0][2] === preview.y && s.path.at(-1)?.[1] === endpoint.x && s.path.at(-1)?.[2] === endpoint.y));
+});
+
+test('existing mark arc is shown before the new overcharge chain with a separate pale color', () => {
+  const game = fixture('overcharge'); game.effects = [];
+  game.status(game.enemies[0], 'mark', { remaining: 4, duration: 4, originPosition: { x: 640, y: 350 } });
+  assert.equal(game.skills.beginTarget(0), true);
+  const preview = game.skills.targetingPreview;
+  assert.equal(preview.preChain.length, 2); assert.ok(preview.chain.length > 1);
+  const trace = stableDraw(game), before = preview.preChain[0], next = preview.preChain[1];
+  const priorIndex = trace.strokes.findIndex(s => s.style === '#D8CEAE' && s.path[0]?.[1] === before.x && s.path[0]?.[2] === before.y && s.path.at(-1)?.[1] === next.x && s.path.at(-1)?.[2] === next.y);
+  const mainStart = preview.chain[0], mainEnd = preview.chain[1];
+  const newIndex = trace.strokes.findIndex(s => s.style === '#5EE3FF' && s.path[0]?.[0] === 'moveTo' && s.path[0][1] === mainStart.x && s.path[0][2] === mainStart.y && s.path.at(-1)?.[1] === mainEnd.x && s.path.at(-1)?.[2] === mainEnd.y);
+  assert.ok(priorIndex >= 0 && newIndex > priorIndex);
 });

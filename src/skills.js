@@ -32,12 +32,16 @@ export class SkillSystem {
     this.circuitTimer = 5;
     this.censusCooldown = 0;
     this.networkUnlocked = false;
+    this.targeting = null;
+    this.worldTargeting = false;
+    this.circuitOrigin = null;
   }
 
   slot(id) { return this.game.skillSlots.find(s => s?.id === id); }
   get recordPreview() {
-    if (this.held?.id !== 'bomb' || this.held.heldSeconds < .5) return [];
-    const limit = this.held.slot.branch === 'cluster' ? 7 : 5;
+    const input = this.targeting?.id === 'bomb' ? this.targeting : this.held;
+    if (input?.id !== 'bomb' || input.slot.evolution < 3 || input.heldSeconds < .5) return [];
+    const limit = input.slot.branch === 'cluster' ? 7 : 5;
     return this.history.filter(p => this.game.time - p.time <= 10).slice(-limit);
   }
   hasMethod(id) { return this.game.methods?.has(id) || false; }
@@ -77,6 +81,223 @@ export class SkillSystem {
   near(x, y, r, filter = () => true) { return this.game.near(x, y, r, e => alive(e) && filter(e)); }
   nearest(x, y, r = Infinity, filter = () => true) { return this.game.nearest(x, y, r, e => alive(e) && filter(e)); }
   aim() { return { x: clamp(this.game.cursor.x, 0, this.game.width), y: clamp(this.game.cursor.y, 0, this.game.height) }; }
+
+  // Input previews never allocate a cast root or change combat state. The same
+  // geometry helpers below also place the confirmed world objects.
+  holeGeometry(slot, point) {
+    const twin = slot.branch === 'twin';
+    return (twin ? [{ x: point.x - 70, y: point.y }, { x: point.x + 70, y: point.y }] : [{ ...point }])
+      .map(p => ({ ...p, r: twin ? 85 : slot.branch === 'anchor' ? 145 : 125, kind: 'hole' }));
+  }
+  sweepLines(point, angle, length, width, lattice) {
+    return (lattice ? [angle, angle + Math.PI / 2] : [angle]).map(a => this.cutLines(point, a, length, width)[0]);
+  }
+  bombRadius(slot, records = null) { return records ? 110 : slot.branch === 'compression' ? 55 : 85; }
+  commandGeometry(slot, point) {
+    let anchor = null, host = null;
+    if (slot.branch === 'watchtower' && this.game.anchors?.length) {
+      anchor = [...this.game.anchors].sort((a, b) => distance(a, point) - distance(b, point))[0];
+      point = { x: anchor.x, y: anchor.y };
+    } else if (slot.branch === 'hunter') {
+      host = this.selectOrbital(point, 250, e => e.elite || e.boss || e.type === 'channeler') || this.selectOrbital(point, 150);
+      if (host) point = { x: host.x, y: host.y };
+    }
+    return { point, anchor, host };
+  }
+  holeRecast(slot) {
+    const group = this.activeHoleGroup;
+    if (!group || group.slot !== slot) return null;
+    const holes = this.game.fields.filter(f => f.type === 'hole' && f.groupId === group.id && !f.removed && f.remaining > 0);
+    if (!holes.length) return null;
+    const age = this.game.time - group.created;
+    if (slot.evolution >= 3 && age <= 1.2 && !group.folded) return { mode: 'hole-fold', group, holes };
+    if (slot.evolution >= 2 && age < 3 && !group.repositioned && !(slot.evolution >= 3 && age <= 1.2) && !holes.some(h => h.autoMoving || h.repositionLocked)) return { mode: 'hole-move', group, holes };
+    return null;
+  }
+  targetMode(slot, index) {
+    if (slot.id === 'overcharge' && this.route?.index === index) return { mode: 'circuit', field: this.route };
+    if (slot.id === 'hole') { const recast = this.holeRecast(slot); if (recast) return recast; }
+    if (slot.id === 'cut') {
+      const field = this.game.fields.find(f => f.type === 'sweep' && f.slot === slot && !f.removed && !f.moved);
+      if (field) return { mode: 'sweep-move', field };
+    }
+    if (slot.id === 'orbital' && slot.evolution >= 2) {
+      const field = this.activeCommand;
+      if (field?.slot === slot && !field.removed && !field.redirected) return { mode: 'command-redirect', field };
+    }
+    if (slot.id === 'seed') {
+      const field = this.game.fields.find(f => f.type === 'cone' && f.slot === slot && !f.removed && !f.steered);
+      if (field) return { mode: 'seed-steer', field };
+    }
+    return slot.cd > 0 ? null : { mode: 'cast' };
+  }
+  beginTarget(index) {
+    const slot = this.game.skillSlots[index];
+    if (!slot || this.game.phase !== 'playing') return false;
+    const mode = this.targetMode(slot, index);
+    if (!mode) return false;
+    const point = this.aim();
+    this.worldTargeting = true;
+    this.armed = null; this.held = null;
+    this.game.cursor.down = false; this.game.cursor.hold = 0;
+    this.targeting = { index, id: slot.id, slot, ...mode, startX: point.x, startY: point.y, heldSeconds: 0, keyHeld: true };
+    this.game.sound?.('arm');
+    return true;
+  }
+  releaseTargetKey(index) {
+    if (this.targeting?.index !== index) return false;
+    this.targeting.keyHeld = false;
+    return true;
+  }
+  cancelTarget() {
+    if (!this.targeting) return false;
+    this.targeting = null;
+    this.game.cursor.down = false; this.game.cursor.hold = 0;
+    return true;
+  }
+  get targetingPreview() { return this.makeTargetingPreview(); }
+  makeTargetingPreview(held = this.game.cursor.down ? this.game.cursor.hold : 0) {
+    const input = this.targeting;
+    if (!input) return null;
+    const { slot, mode, index, id } = input, cursor = this.aim();
+    const preview = { id, index, mode, ...cursor, r: 0, angle: this.lastCutAngle, lines: [], circles: [], targets: [], chain: [], preChain: [], preCircles: [], records: [], valid: true, conditional: false, origin: { x: input.startX, y: input.startY } };
+    const circlesTargets = circles => [...new Set(circles.flatMap(c => this.near(c.x, c.y, c.r).map(e => e.id)))];
+    const cappedPoint = (origin, maximum) => {
+      const d = distance(origin, cursor), scale = d > maximum ? maximum / d : 1;
+      return { x: origin.x + (cursor.x - origin.x) * scale, y: origin.y + (cursor.y - origin.y) * scale };
+    };
+    if (mode === 'circuit') {
+      preview.valid = this.route === input.field;
+      const route = input.field, root = this.game.roots?.get(route.rootId);
+      preview.chain = this.game.previewArc(cursor.x, cursor.y, slot.branch === 'needle' ? 1 : 3, { range: 150 }, [...route.excluded], root).map(e => ({ x: e.x, y: e.y, id: e.id }));
+      preview.targets = preview.chain.map(e => e.id); preview.r = 150;
+      preview.origin = { x: route.origin.x, y: route.origin.y };
+    } else if (mode === 'hole-fold') {
+      const current = this.holeRecast(slot), group = input.group, d = distance(group, cursor);
+      preview.valid = current?.mode === mode && d >= 80 && d <= 360;
+      preview.origin = { x: group.x, y: group.y };
+      preview.lines = [{ x: group.x, y: group.y, x2: cursor.x, y2: cursor.y, width: 32 }];
+      preview.targets = this.game.enemies.filter(e => alive(e) && inLine(e, preview.lines[0])).map(e => e.id);
+    } else if (mode === 'hole-move') {
+      preview.valid = this.holeRecast(slot)?.mode === mode;
+      const point = cappedPoint(input.group, 180);
+      Object.assign(preview, point); preview.origin = { x: input.group.x, y: input.group.y };
+      preview.circles = input.holes.map(h => ({ x: h.x + point.x - input.group.x, y: h.y + point.y - input.group.y, r: h.r, kind: 'hole' }));
+      preview.r = preview.circles[0]?.r || 0; preview.targets = circlesTargets(preview.circles);
+    } else if (mode === 'sweep-move') {
+      const f = input.field, point = cappedPoint(f, 180);
+      preview.valid = !f.removed && !f.moved;
+      Object.assign(preview, point); preview.angle = f.angle; preview.r = f.r;
+      preview.origin = { x: f.x, y: f.y };
+      preview.lines = this.sweepLines(point, f.angle, f.length, f.width, f.lattice);
+      preview.circles = [{ ...point, r: f.length / 2 + f.width / 2, kind: 'sweep' }];
+      preview.targets = circlesTargets(preview.circles);
+    } else if (mode === 'seed-steer') {
+      const f = input.field;
+      preview.valid = !f.removed && !f.steered; preview.r = f.r;
+      preview.x = f.x; preview.y = f.y; preview.origin = { x: f.x, y: f.y };
+      preview.angle = Math.atan2(cursor.y - f.y, cursor.x - f.x);
+      preview.targets = this.near(f.x, f.y, f.r, e => !e.statuses.infected && Math.abs(Math.atan2(Math.sin(Math.atan2(e.y - f.y, e.x - f.x) - preview.angle), Math.cos(Math.atan2(e.y - f.y, e.x - f.x) - preview.angle))) <= Math.PI / 4)
+        .sort((a, b) => distance(a, f) - distance(b, f) || a.id - b.id).slice(0, 3).map(e => e.id);
+    } else if (id === 'overcharge') {
+      const direct = this.game.directTargets(held, cursor.x, cursor.y);
+      preview.r = direct.r; preview.valid = this.game.charges >= 1 && !!direct.target;
+      if (direct.target) {
+        const target = direct.target, count = slot.branch === 'fork' ? 5 : slot.branch === 'needle' ? 1 : 3;
+        const excluded = new Set([target.id, ...direct.splash.map(e => e.id)]), previousHits = [];
+        const mark = target.statuses?.mark;
+        if (mark) {
+          // direct() consumes the existing mark before onDirect() discharges
+          // Overcharge. Those earlier hits cannot receive this root's next arc.
+          const markHits = this.game.previewArc(target.x, target.y, 1, {}, [...excluded]);
+          preview.preChain = [target, ...markHits].map(e => ({ x: e.x, y: e.y, id: e.id }));
+          previousHits.push(...markHits);
+          for (const e of markHits) excluded.add(e.id);
+          if (this.hasMethod('origin_echo')) {
+            const origin = mark.originPosition || cursor;
+            preview.preCircles = [{ x: origin.x, y: origin.y, r: 50, kind: 'origin-echo' }];
+            const echoes = this.near(origin.x, origin.y, 50);
+            previousHits.push(...echoes);
+            for (const e of echoes) excluded.add(e.id);
+          }
+        }
+        const chain = this.game.previewArc(target.x, target.y, count, { range: slot.branch === 'fork' ? 125 : 110 }, [...excluded]);
+        preview.chain = [target, ...chain].map(e => ({ x: e.x, y: e.y, id: e.id }));
+        preview.targets = [...new Set([...preview.chain.map(e => e.id), ...previousHits.map(e => e.id)])];
+        // Death-dependent bursts/returns and newly spawned splitters remain a
+        // conditional forecast rather than modifying or simulating combat.
+        preview.conditional = this.hasMethod('overkill') || this.hybrid('relay_hunt') ||
+          [target, ...direct.splash, ...previousHits, ...chain].some(e => e.statuses?.infected || e.statuses?.mark?.returnCurrent || (e !== target && e.type === 'splitter'));
+      }
+    } else if (id === 'bomb') {
+      preview.records = this.recordPreview.map(p => ({ ...p }));
+      preview.r = this.bombRadius(slot, preview.records.length ? preview.records : null);
+      preview.circles = [{ ...cursor, r: preview.r, kind: 'bomb' }];
+      const ghostR = slot.branch === 'compression' ? 22 : 30;
+      preview.circles.push(...preview.records.map(p => ({ x: p.x, y: p.y, r: ghostR, kind: 'record' })));
+      preview.targets = circlesTargets(preview.circles);
+    } else if (id === 'hole') {
+      preview.circles = this.holeGeometry(slot, cursor); preview.r = preview.circles[0].r;
+      preview.targets = circlesTargets(preview.circles);
+    } else if (id === 'cut') {
+      const point = { x: input.startX, y: input.startY }, dx = cursor.x - point.x, dy = cursor.y - point.y;
+      Object.assign(preview, point); preview.angle = Math.hypot(dx, dy) > 4 ? Math.atan2(dy, dx) : this.lastCutAngle;
+      preview.r = slot.branch === 'razor' ? 230 : 200;
+      const width = slot.branch === 'razor' ? 12 : 26;
+      preview.lines = slot.evolution >= 3 ? this.sweepLines(point, preview.angle, preview.r * 2, width, slot.branch === 'lattice') : this.cutLines(point, preview.angle, preview.r * 2, width, slot.branch === 'lattice');
+      preview.targets = this.game.enemies.filter(e => alive(e) && preview.lines.some(line => inLine(e, line))).map(e => e.id);
+      if (slot.evolution >= 3) preview.circles = [{ ...point, r: preview.r + width / 2, kind: 'sweep' }];
+      else if (slot.evolution >= 2) preview.circles = (slot.branch === 'lattice' ? [-90, 90] : [0]).map(offset => ({ x: point.x + Math.cos(preview.angle) * offset, y: point.y + Math.sin(preview.angle) * offset, r: 45, kind: 'rift' }));
+      preview.targets = [...new Set([...preview.targets, ...circlesTargets(preview.circles)])];
+    } else if (id === 'orbital') {
+      const geometry = mode === 'command-redirect' ? { point: cursor, host: null, anchor: null } : this.commandGeometry(slot, cursor);
+      Object.assign(preview, geometry.point); preview.r = 90;
+      preview.valid = mode === 'cast' || (!input.field.removed && !input.field.redirected);
+      preview.circles = [{ ...geometry.point, r: 90, kind: 'command' }];
+      const target = (slot.branch === 'watchtower' && geometry.anchor && this.selectOrbital(geometry.point, 90, e => e.anchorIndex === (geometry.anchor.id ?? geometry.anchor.index) && e.channel > 0)) || this.selectOrbital(geometry.point, 90);
+      const impact = target ? { x: target.x, y: target.y } : geometry.point;
+      preview.circles.push({ ...impact, r: 44, kind: 'impact' });
+      preview.targets = this.near(impact.x, impact.y, 44).map(e => e.id);
+    } else if (id === 'seed') {
+      preview.r = 45; preview.circles = [{ ...cursor, r: 45, kind: 'seed' }];
+      const target = this.nearest(cursor.x, cursor.y, 45); preview.targets = target ? [target.id] : [];
+    }
+    return preview;
+  }
+  confirmTarget(held = 0) {
+    const input = this.targeting, preview = this.makeTargetingPreview(held);
+    if (!input || this.game.phase !== 'playing' || !preview?.valid) return false;
+    const { slot, mode } = input, point = { x: preview.x, y: preview.y };
+    if (mode !== 'cast') {
+      let confirmed = false;
+      if (mode === 'circuit') { this.routeCircuit(point, true); confirmed = true; }
+      else if (mode === 'hole-fold' || mode === 'hole-move') confirmed = this.moveHole(slot, point);
+      else if (mode === 'sweep-move') { this.movePoint(input.field, point, 180); input.field.moved = true; confirmed = true; }
+      else if (mode === 'command-redirect') confirmed = this.redirectCommand(slot, point);
+      else if (mode === 'seed-steer') { input.field.angle = preview.angle; input.field.steered = true; confirmed = true; }
+      if (confirmed) this.targeting = null;
+      return confirmed;
+    }
+    if (slot.cd > 0) return false;
+    if (slot.id === 'overcharge') {
+      // Keep direct charge, shield bypass, marks, combo and root accounting intact.
+      this.armed = { index: input.index, slot, remaining: 6, duration: 6 };
+      const confirmed = this.game.direct(held, point.x, point.y);
+      if (!confirmed) this.armed = null;
+      else this.targeting = null;
+      return confirmed;
+    }
+    const rootId = this.game.newRoot();
+    this.targeting = null;
+    if (slot.id === 'bomb') {
+      const records = preview.records.length ? preview.records : null;
+      this.placeBomb(slot, point, rootId, records); this.cast(slot, rootId, records ? 24 : 12);
+    } else if (slot.id === 'hole') { this.placeHole(slot, point, rootId); this.cast(slot, rootId); }
+    else if (slot.id === 'orbital') { this.placeCommand(slot, point, rootId); this.cast(slot, rootId); }
+    else if (slot.id === 'seed') { this.placeSeed(slot, point, rootId); this.cast(slot, rootId); }
+    else if (slot.id === 'cut') { this.lastCutAngle = preview.angle; this.cast(slot, rootId, slot.evolution >= 3 ? 22 : 11); this.cut(slot, point, preview.angle, rootId); }
+    return true;
+  }
 
   press(index) {
     const slot = this.game.skillSlots[index];
@@ -132,7 +353,7 @@ export class SkillSystem {
     return true;
   }
 
-  cancelInput() { this.armed = null; this.held = null; this.route = null; this.routeUntil = 0; }
+  cancelInput() { this.cancelTarget(); this.armed = null; this.held = null; this.route = null; this.routeUntil = 0; }
 
   prepareDirect(target, info) {
     info.skillTargetId = target?.id;
@@ -182,6 +403,7 @@ export class SkillSystem {
     this.armed = null;
     const slot = armed.slot, rootId = info.rootId;
     const origin = target ? { x: target.x, y: target.y } : { x: info.x, y: info.y };
+    this.circuitOrigin = { ...origin };
     const count = slot.branch === 'fork' ? 5 : slot.branch === 'needle' ? 1 : 3;
     const damages = slot.branch === 'fork' ? [49, 38.5, 28, 21, 17.5] : slot.branch === 'needle' ? [90] : [70, 55, 40];
     this.cast(slot, rootId);
@@ -212,6 +434,7 @@ export class SkillSystem {
     const route = this.route;
     if (!route) return;
     this.route = null; this.routeUntil = 0;
+    this.circuitOrigin = { ...point };
     const slot = route.slot;
     let hits;
     if (manual) hits = this.game.arc(point.x, point.y, slot.branch === 'needle' ? 1 : 3, slot.branch === 'needle' ? [120] : [50, 40, 30], this.meta(slot, route.rootId, { chain: true, range: 150, effectId: 'living_circuit' }), [...route.excluded]);
@@ -226,7 +449,7 @@ export class SkillSystem {
 
   placeBomb(slot, point, rootId, records = null, options = {}) {
     const compression = slot.branch === 'compression';
-    const r = records ? 110 : compression ? 55 : 85;
+    const r = this.bombRadius(slot, records);
     const damage = records ? 180 : compression ? 340 : slot.branch === 'cluster' ? 170 : 230;
     return this.field('bomb', { ...point, r, damage, rootId, slot, duration: options.delay ?? .8, fuse: options.delay ?? .8, record: !!records, records, ...options });
   }
@@ -267,8 +490,8 @@ export class SkillSystem {
   placeHole(slot, point, rootId) {
     const groupId = ++this.sequence;
     const twin = slot.branch === 'twin';
-    const points = twin ? [{ x: point.x - 70, y: point.y }, { x: point.x + 70, y: point.y }] : [point];
-    for (const p of points) this.field('hole', { ...p, r: twin ? 85 : slot.branch === 'anchor' ? 145 : 125, slot, rootId, groupId, duration: 3, mass: 0, maxMass: 8, endRadius: 80, pull: slot.branch === 'anchor' ? 130 : 140, damageScale: twin ? .7 : 1, tickTimer: .5, tickEvery: .5, inside: new Set(), sheared: new Set(), strainTriggered: new Set(), foldUntil: slot.evolution >= 3 ? this.game.time + 1.2 : 0 });
+    const points = this.holeGeometry(slot, point);
+    for (const p of points) this.field('hole', { x: p.x, y: p.y, r: p.r, slot, rootId, groupId, duration: 3, mass: 0, maxMass: 8, endRadius: 80, pull: slot.branch === 'anchor' ? 130 : 140, damageScale: twin ? .7 : 1, tickTimer: .5, tickEvery: .5, inside: new Set(), sheared: new Set(), strainTriggered: new Set(), foldUntil: slot.evolution >= 3 ? this.game.time + 1.2 : 0 });
     this.activeHoleGroup = { id: groupId, slot, rootId, x: point.x, y: point.y, created: this.game.time, repositioned: false, folded: false };
   }
 
@@ -365,12 +588,9 @@ export class SkillSystem {
   }
 
   placeCommand(slot, point, rootId) {
-    let host = null, anchor = null;
-    if (slot.branch === 'watchtower' && this.game.anchors?.length) {
-      anchor = [...this.game.anchors].sort((a, b) => distance(a, point) - distance(b, point))[0];
-      point = { x: anchor.x, y: anchor.y };
-    } else if (slot.branch === 'hunter') host = this.selectOrbital(point, 250, e => e.elite || e.boss || e.type === 'channeler') || this.selectOrbital(point, 150);
-    const field = this.field('command', { ...point, r: 90, radius: 90, slot, rootId, duration: 5, anchorIndex: anchor?.id ?? anchor?.index, hostId: host?.id, redirected: false, markedUses: 0, parasiteHits: 0, warning: slot.branch === 'hunter' ? .5 : .35, shots: [.6, 1.7, 2.8, 3.9].map(at => ({ x: point.x, y: point.y, at, locked: false, fired: false, visible: false, r: 44, damage: 55 })) });
+    const geometry = this.commandGeometry(slot, point), { host, anchor } = geometry;
+    point = geometry.point;
+    const field = this.field('command', { ...point, r: 90, radius: 90, slot, rootId, duration: 5, anchorIndex: anchor?.id ?? anchor?.index, hostId: host?.id, redirected: false, markedUses: 0, parasiteHits: 0, warning: slot.branch === 'hunter' ? .5 : .35, shots: [.6, 1.7, 2.8, 3.9].map((at, index) => ({ x: point.x, y: point.y, sourceX: this.game.width * (.3 + index * .13), sourceY: -48, at, locked: false, fired: false, visible: false, r: 44, damage: 55 })) });
     this.activeCommand = field;
   }
 
@@ -492,7 +712,7 @@ export class SkillSystem {
     this.game.onInfectionBurst?.(enemy, status, { reason, triggerRoot, damage, allowProc });
     if (allowProc && reason === 'manual' && status.evolution >= 3 && status.originalHost && !state.final) {
       state.final = true;
-      this.field('cone', { x: enemy.x, y: enemy.y, r: 150, angle: this.game.cursor.angle || 0, angleWidth: Math.PI / 2, rootId: status.rootId, slot: this.slot('seed'), duration: .5, originCursorX: this.game.cursor.x, originCursorY: this.game.cursor.y, infection: status });
+      this.field('cone', { x: enemy.x, y: enemy.y, r: 150, angle: this.game.cursor.angle || 0, angleWidth: Math.PI / 2, rootId: status.rootId, slot: this.slot('seed'), duration: .5, originCursorX: this.game.cursor.x, originCursorY: this.game.cursor.y, explicitSteering: this.worldTargeting, steered: false, infection: status });
     }
     return true;
   }
@@ -551,9 +771,10 @@ export class SkillSystem {
     for (const slot of this.game.skillSlots) if (slot) slot.cd = Math.max(0, (slot.cd || 0) - dt);
     this.networkCooldown = Math.max(0, this.networkCooldown - dt);
     this.censusCooldown = Math.max(0, this.censusCooldown - dt);
+    if (this.targeting?.keyHeld) this.targeting.heldSeconds += dt;
     if (this.armed) { this.armed.remaining -= dt; if (this.armed.remaining <= 0) { this.cooldown(this.armed.slot, 5); this.armed = null; } }
     if (this.held) { this.held.heldSeconds += dt; this.held.remaining -= dt; if (this.held.remaining <= 0) this.release(this.held.index, this.held.heldSeconds); }
-    if (this.route) { this.route.remaining -= dt; if (this.route.remaining <= 0) this.routeCircuit({ x: this.route.x, y: this.route.y }, false); }
+    if (this.route && !(this.targeting?.mode === 'circuit' && this.targeting.field === this.route)) { this.route.remaining -= dt; if (this.route.remaining <= 0) this.routeCircuit({ x: this.route.x, y: this.route.y }, false); }
     this.updatePassives(dt);
     for (const enemy of [...this.game.enemies]) { if (this.game.phase === 'ended') break; if (alive(enemy)) this.updateStatuses(enemy, dt); }
     for (const field of [...this.game.fields]) { if (this.game.phase === 'ended') break; if (!field.removed) this.updateField(field, dt); }
@@ -572,14 +793,14 @@ export class SkillSystem {
       if (this.scoutTimer <= 0) {
         const host = this.hybrid('parasite_hive') ? this.nearest(this.game.cursor.x, this.game.cursor.y, 110, e => e.statuses.infected) : null;
         const target = (host && this.selectOrbital(host, 70, e => !e.statuses.infected)) || this.selectOrbital(this.game.cursor, 110);
-        if (target) { const rootId = this.game.newRoot(); this.hit(target, 25, 'SUMMON', this.meta(orbital, rootId, { effectId: 'orbital_scout', passive: true }), null); this.fx('line', { x: this.game.cursor.x, y: this.game.cursor.y, toX: target.x, toY: target.y, color: COLORS.orbital, life: .15 }); }
+        if (target) { const rootId = this.game.newRoot(); this.hit(target, 25, 'SUMMON', this.meta(orbital, rootId, { effectId: 'orbital_scout', passive: true }), null); this.fx('line', { x: this.game.width * .5, y: 28, toX: target.x, toY: target.y, color: COLORS.orbital, life: .15 }); }
         this.scoutTimer += 2.1 * (this.game.relics?.includes('swarm_clock') ? .75 : 1);
       }
     }
     const overcharge = this.slot('overcharge');
     if (overcharge?.evolution >= 3) {
       this.circuitTimer -= dt;
-      if (this.circuitTimer <= 0) { this.game.arc(this.game.cursor.x, this.game.cursor.y, 1, [35], this.meta(overcharge, this.game.newRoot(), { chain: true, effectId: 'living_circuit_passive', passive: true })); this.circuitTimer += 5; }
+      if (this.circuitTimer <= 0) { const origin = this.worldTargeting && this.circuitOrigin ? this.circuitOrigin : this.game.cursor; this.game.arc(origin.x, origin.y, 1, [35], this.meta(overcharge, this.game.newRoot(), { chain: true, effectId: 'living_circuit_passive', passive: true })); this.circuitTimer += 5; }
     }
   }
 
@@ -624,13 +845,16 @@ export class SkillSystem {
   }
 
   updateField(f, dt) {
+    // A manually opened propagation preview keeps the existing short window
+    // available until confirmation or cancellation; it cannot fire on keyup.
+    if (f.type === 'cone' && this.targeting?.mode === 'seed-steer' && this.targeting.field === f) return;
     f.age += dt; f.remaining -= dt;
     if (f.type === 'bomb') { if (f.remaining <= 0) { f.removed = true; this.explodeBomb(f); } return; }
     if (f.type === 'hole') this.updateHole(f, dt);
     else if (f.type === 'command') this.updateCommand(f);
     else if (f.type === 'sweep') this.updateSweep(f, dt);
     else if (f.type === 'network') {
-      f.x = this.game.cursor.x; f.y = this.game.cursor.y; f.tickTimer -= dt;
+      f.tickTimer -= dt;
       while (f.tickTimer <= 0 && f.remaining >= -dt) {
         for (const e of this.game.enemies.filter(alive)) {
           const horizontal = Math.abs(e.y - f.y) <= 12 + e.r, vertical = Math.abs(e.x - f.x) <= 12 + e.r;
@@ -653,9 +877,9 @@ export class SkillSystem {
       for (const e of this.game.enemies.filter(alive)) if (f.seen.size < f.maxTargets && !e.statuses.infected && !f.seen.has(e.id) && inLine(e, f)) { f.seen.add(e.id); this.infect(e, f.slot, f.rootId, { damageScale: f.infection.damageScale * .65, originalHost: false, spread: false, snapshotPower: f.infection.snapshotPower, snapshotBonus: f.infection.snapshotBonus }); }
     } else if (f.type === 'cone') {
       const dx = this.game.cursor.x - f.originCursorX, dy = this.game.cursor.y - f.originCursorY;
-      if (Math.hypot(dx, dy) >= 20) f.angle = Math.atan2(dy, dx);
+      if (!f.explicitSteering && Math.hypot(dx, dy) >= 20) f.angle = Math.atan2(dy, dx);
       if (f.remaining <= 0) {
-        const moved = Math.hypot(dx, dy) >= 20;
+        const moved = f.explicitSteering ? f.steered : Math.hypot(dx, dy) >= 20;
         const targets = this.near(f.x, f.y, 150, e => {
           if (e.statuses.infected) return false;
           const a = Math.atan2(e.y - f.y, e.x - f.x), delta = Math.atan2(Math.sin(a - f.angle), Math.cos(a - f.angle));
@@ -732,9 +956,9 @@ export class SkillSystem {
     f.tickTimer -= dt;
     while (f.tickTimer <= 0 && f.age <= f.duration + dt) {
       const revolution = Math.min(1, Math.floor(elapsed / 1.5));
-      const angles = f.lattice ? [f.angle, f.angle + Math.PI / 2] : [f.angle];
+      const lines = this.sweepLines(f, f.angle, f.length, f.width, f.lattice);
       for (const e of this.game.enemies.filter(alive)) {
-        const hit = angles.some(a => inLine(e, this.cutLines(f, a, f.length, f.width)[0]));
+        const hit = lines.some(line => inLine(e, line));
         const record = f.hits.get(e.id) || { total: 0, turns: new Set() };
         if (hit && record.total < 2 && !record.turns.has(revolution)) {
           record.total++; record.turns.add(revolution); f.hits.set(e.id, record);

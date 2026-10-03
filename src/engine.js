@@ -99,14 +99,17 @@ export class Game {
     if(!meta.noProc&&echo===rootId&&this.hybrid==='echo_order')this.proc(rootId,'echo_order',0,()=>{const point={x:enemy.x,y:enemy.y};this.schedule(.4,()=>this.arc(point.x,point.y,1,[50],{rootId,tag:'CHAIN',chain:true,effectId:'echo_order'},[enemy.id]));});
     return {killed:enemy.dead,damage:amount,effective,body:amount-shieldDamage,shield:shieldDamage,bypass:directBody,overkill};
   }
+  arcTarget(x,y,range,excluded,root){return this.nearest(x,y,range,e=>!excluded.has(e.id)&&!root?.chainTargets?.has(e.id)&&!root?.hits?.has(e.id));}
+  previewArc(x,y,count,meta={},excludedIds=[],root=null){const excluded=new Set(excludedIds),path=[];for(let i=0;i<count;i++){const target=this.arcTarget(x,y,meta.range||110,excluded,root);if(!target)break;path.push(target);excluded.add(target.id);x=target.x;y=target.y;}return path;}
   arc(x,y,count,damages,meta={},excludedIds=[]) {
     const rootId=meta.rootId??this.newRoot(),r=this.root(rootId),hits=[],excluded=new Set(excludedIds);let px=x,py=y,pendingInfection=null;
     for(let i=0;i<count;i++){
-      const target=this.nearest(px,py,meta.range||110,e=>!excluded.has(e.id)&&!r.chainTargets.has(e.id)&&!r.hits.has(e.id));if(!target)break;
+      const target=this.arcTarget(px,py,meta.range||110,excluded,r);if(!target)break;
       if(!r.heatStarted){this.heat+=16;r.heatStarted=true;}this.heat+=4;this.heatIdle=0;
       if(pendingInfection&&this.hybrid==='contagion_circuit'&&(r.contagionCopies||0)<2)this.proc(rootId,'contagion_circuit',target.id,()=>{r.contagionCopies=(r.contagionCopies||0)+1;this.status(target,'infected',{...pendingInfection,remaining:pendingInfection.remaining*.65,rootId:pendingInfection.rootId,child:true,noCopy:true});});
       const stored=target.statuses.infected;if(stored&&!stored.noCopy)pendingInfection={...stored};else pendingInfection=null;
-      this.fx('arc',{x:px,y:py,toX:target.x,toY:target.y,width:Math.max(1,3-i*.4),color:COLORS.CHAIN,life:.2});
+      const delay=i*.065;this.fx('arc',{x:px,y:py,toX:target.x,toY:target.y,width:Math.max(1,3-i*.4),color:COLORS.CHAIN,life:.22+delay,delay,sequenceIndex:i,rootId});
+      this.fx('hit',{x:target.x,y:target.y,r:target.r+5,color:COLORS.CHAIN,life:.16+delay,delay,sequenceIndex:i,rootId});
       r.chainTargets.add(target.id);excluded.add(target.id);this.damage(target,damages[Math.min(i,damages.length-1)]||0,'SKILL',{...meta,rootId,tag:'CHAIN',chain:true});hits.push(target);
       if(this.hybrid==='orbit_relay'){
         const hole=this.fields.find(f=>f.type==='hole'&&f.mass>=2&&dist(target.x,target.y,f.x,f.y)<f.r);
@@ -114,7 +117,7 @@ export class Game {
       }
       px=target.x;py=target.y;
     }
-    if(hits.length)this.sound('chain');return hits;
+    if(hits.length){const delay=(hits.length-1)*.065+.045;this.fx('discharge',{x:px,y:py,r:18,color:COLORS.CHAIN,life:.2+delay,delay,rootId});this.sound('chain');}return hits;
   }
   breakProtection(enemy){enemy.protectedBy=null;enemy.linkBroken=5;for(const e of this.enemies)if(e.protectedBy===enemy.id){e.protectedBy=null;e.linkBroken=5;break;}}
   onEnemyInterrupt(enemy){if(!(enemy.channel>0))return false;this.metrics.interrupts++;if(this.relics.includes('anchor_heart')&&(this.cooldowns.anchor_heart||0)<=0){this.heal(3);this.cooldowns.anchor_heart=8;}return true;}
@@ -150,8 +153,9 @@ export class Game {
   markCastValid(rootId){const record=this.castHistory.find(c=>c.rootId===rootId);if(!record||record.valid)return;record.valid=true;for(const q of this.castHistory){if(q.index!==1||!q.valid||q.counted)continue;const e=[...this.castHistory].reverse().find(c=>c.index===0&&c.valid&&c.time<=q.time&&q.time-c.time<=5&&!c.counted);if(e){q.counted=true;e.counted=true;this.metrics.casterPairs++;}}}
   beginDirect(){if(this.phase!=='playing')return;this.cursor.down=true;this.cursor.hold=0;}
   endDirect(){if(!this.cursor.down)return;const held=this.cursor.hold;this.cursor.down=false;this.cursor.hold=0;if(this.phase==='playing')this.direct(held);}
+  directTargets(held=0,x=this.cursor.x,y=this.cursor.y){const charged=held>=.8,r=(charged?48:36)+this.stats.radiusBonus,target=this.nearest(x,y,r);return {charged,r,target,splash:target?this.near(x,y,r).filter(e=>e.id!==target.id).slice(0,charged?4:3):[]};}
   direct(held=0,x=this.cursor.x,y=this.cursor.y){
-    if(this.charges<1)return false;const charged=held>=.8,r=(charged?48:36)+this.stats.radiusBonus,target=this.nearest(x,y,r);if(!target){this.fx('ring',{x,y,r,color:'#617083',life:.2});return false;}
+    if(this.charges<1)return false;const {charged,r,target}=this.directTargets(held,x,y);if(!target){this.fx('ring',{x,y,r,color:'#617083',life:.2});return false;}
     this.charges--;const rootId=this.newRoot(),crit=this.rng()<Math.min(.6,this.stats.critChance),mark=target.statuses.mark;
     if(mark)delete target.statuses.mark;
     const info={x,y,held,rootId,mark,crit};const prepared=this.skills.prepareDirect?.(target,info)||{};
@@ -250,7 +254,7 @@ export class Game {
     if(this.time%5<dt){for(const [id,r] of this.roots)if(this.time-r.time>65)this.roots.delete(id);if(this.pendingCore){const choices=makeChoices(this,'evolution');if(choices.some(c=>c.kind!=='reserve')){this.pendingCore=false;this.queueReward('evolution');}}}
     this.emit('tick',this);
   }
-  updateCrossGravity(dt){const command=this.fields.find(f=>f.type==='network')||this.fields.find(f=>f.type==='command');if(!command)return;const holes=this.fields.filter(f=>f.type==='hole');let hole=holes.sort((a,b)=>dist(a.x,a.y,command.x,command.y)-dist(b.x,b.y,command.x,command.y))[0];if(!hole)return;const x=command.type==='network'?this.cursor.x:command.x,y=command.type==='network'?this.cursor.y:command.y,d=dist(hole.x,hole.y,x,y)||1,step=Math.min(d,dt*(command.type==='network'?120:80));hole.x+=(x-hole.x)/d*step;hole.y+=(y-hole.y)/d*step;hole.repositionLocked=true;}
+  updateCrossGravity(dt){const command=this.fields.find(f=>f.type==='network'&&!f.removed)||this.fields.find(f=>f.type==='command'&&!f.removed);if(!command)return;const holes=this.fields.filter(f=>f.type==='hole'&&!f.removed);let hole=holes.sort((a,b)=>dist(a.x,a.y,command.x,command.y)-dist(b.x,b.y,command.x,command.y))[0];if(!hole)return;const x=command.x,y=command.y,d=dist(hole.x,hole.y,x,y)||1,step=Math.min(d,dt*(command.type==='network'?120:80));hole.x+=(x-hole.x)/d*step;hole.y+=(y-hole.y)/d*step;hole.repositionLocked=true;}
   updateRoute(){const route=this.route;if(!route||route.completed||route.spawned||this.time<route.startsAt)return;if(route.id==='stable_supply'){route.spawned=true;route.completed=true;this.toast('안정 보급 완료 · 다음 성장을 준비하세요.');return;}const target=this.spawnEnemy(route.id==='elite_seal'?'ward':'mirror',{x:640,y:65,r:26,hp:700*this.stats.power,elite:true,name:route.id==='elite_seal'?'ELITE SEAL · 봉합 계약':'FORBIDDEN RIFT · 금지 균열',ttl:90,routeTarget:true,xp:80});if(!target)return;route.spawned=true;this.toast('계약 목표 출현 · 90초 안에 삭제하세요.');}
   once(id,time,fn){if(this.worldTime>=time&&!this.eventsDone.has(id)){this.eventsDone.add(id);fn();}}
   scheduleEvents(){

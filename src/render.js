@@ -2,7 +2,7 @@ import { displayText, enemyName } from './ui-text.js';
 
 const TAU = Math.PI * 2;
 const C = {
-  background: '#020204', text: '#FFFFFF', muted: '#91869E',
+  background: '#03050B', text: '#F7F2E7', muted: '#A49DB0',
   chain: '#5EE3FF', infection: '#A6E857', singularity: '#A67CFF',
   swarm: '#F2C15A', impact: '#FF8C6B', bomb: '#ED78BF', danger: '#FF425B',
 };
@@ -36,6 +36,8 @@ export class Renderer {
     this.low = !!this.settings.lowEffects;
     this.high = !!this.settings.highContrast;
     this.time = finite(game.time);
+    this.preview = game.skills?.targetingPreview || null;
+    this.previewTargets = new Set(this.preview?.targets || []);
     ctx.save();
     ctx.setTransform(this.canvas.width / this.width, 0, 0, this.canvas.height / this.height, 0, 0);
     ctx.globalAlpha = 1;
@@ -47,6 +49,7 @@ export class Renderer {
     this.anchors(false);
     const fields = game.fields || [];
     for (const field of fields) this.field(field);
+    this.targetingPreview();
     this.wardLinks();
     for (const enemy of game.enemies || []) if (!enemy.dead) this.enemy(enemy);
     const effects = game.effects || [];
@@ -72,7 +75,6 @@ export class Renderer {
   line(x1, y1, x2, y2, color, width = 1, alpha = 1, dash = null) {
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.strokeStyle = color; c.lineWidth = width;
-    if (!this.low && width >= 1.7 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : 9; }
     if (dash) c.setLineDash(dash);
     c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore();
   }
@@ -81,7 +83,6 @@ export class Renderer {
     if (!(r > 0)) return;
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.strokeStyle = color; c.lineWidth = width;
-    if (!this.low && width >= 1.7 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : 10; }
     if (dash) c.setLineDash(dash);
     c.beginPath(); c.arc(x, y, r, start, end); c.stroke(); c.restore();
   }
@@ -90,14 +91,12 @@ export class Renderer {
     if (!(r > 0)) return;
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.fillStyle = color;
-    if (!this.low && r <= 6 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = 8; }
     c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
   }
 
   polygon(x, y, radius, sides, color, fill = null, angle = -Math.PI / 2, width = 1.5, alpha = 1) {
     const c = this.ctx;
     c.save(); c.globalAlpha = alpha; c.lineWidth = width; c.strokeStyle = color;
-    if (!this.low && width >= 1.4 && alpha >= .65) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : 8; }
     c.beginPath();
     for (let i = 0; i < sides; i++) {
       const a = angle + i * TAU / sides;
@@ -115,7 +114,7 @@ export class Renderer {
       content=labelCache.get(content);
     }
     c.save(); c.globalAlpha = alpha; c.fillStyle = color;
-    c.font = `600 ${size}px "Consolas", monospace`;
+    c.font = `500 ${size}px "Segoe UI", "Malgun Gothic", sans-serif`;
     c.textAlign = align; c.textBaseline = 'middle'; c.fillText(content, x, y); c.restore();
   }
 
@@ -151,19 +150,108 @@ export class Renderer {
   background() {
     const c = this.ctx, w = this.width, h = this.height;
     c.fillStyle = C.background; c.fillRect(0, 0, w, h);
-    // Match the original's open black field: no frame, ruler, dashboard grid or labels.
-    const worldTime = this.game.phase === 'menu' ? 0 : finite(this.game.worldTime, this.time), bloom = clamp((worldTime - 420) / 480);
-    if (bloom > 0) {
-      const glow = c.createRadialGradient(w * .5, h * .5, 0, w * .5, h * .5, Math.max(w, h) * .7);
-      glow.addColorStop(0, '#160B28'); glow.addColorStop(1, C.background);
-      c.save(); c.globalAlpha = bloom * (this.high ? .5 : .9); c.fillStyle = glow; c.fillRect(0, 0, w, h); c.restore();
+    const worldTime = this.game.phase === 'menu' ? 0 : finite(this.game.worldTime, this.time);
+    const ruin = clamp((100 - finite(this.game.integrity, 100)) / 100), bloom = clamp(worldTime / 1080);
+    // Soft, irregular nebulae establish a place. Their light never competes with danger.
+    this.glow(w * .27, h * .35, w * .48, '#303146', this.high ? .16 : .35);
+    if (!this.low) {
+      this.glow(w * .76, h * .62, w * .43, ruin > .55 ? '#4B2338' : '#29293D', .2 + bloom * .16);
+      this.glow(w * .52, h * .79, w * .32, '#153137', .18);
+      c.save(); c.globalAlpha = this.high ? .1 : .2; c.fillStyle = '#04050B';
+      c.beginPath(); c.moveTo(-50, h * .5); c.bezierCurveTo(w * .22, h * .14, w * .45, h * .91, w * .66, h * .43);
+      c.bezierCurveTo(w * .79, h * .18, w * .94, h * .4, w + 50, h * .27);
+      c.lineTo(w + 50, h * .49); c.bezierCurveTo(w * .65, h * .29, w * .42, h, -50, h * .66); c.closePath(); c.fill(); c.restore();
     }
-    const count = this.low ? 24 : Math.min(120, 24 + Math.floor(worldTime / 10));
-    const drift = this.reduced ? 0 : this.clock * 3;
-    c.save(); c.fillStyle = '#9D7CFF';
-    c.globalAlpha = this.high ? .13 : .12 + clamp((50 - finite(this.game.integrity, 100)) / 150, 0, .25);
-    for (let i = 0; i < count; i++) c.fillRect((i * 997 + drift) % w, (i * 571 + 37) % h, 1, 1);
-    c.restore();
+    const count = this.low ? 34 : 110, drift = this.reduced ? 0 : this.clock * .9;
+    for (let i = 0; i < count; i++) {
+      const x = ((i * 997.31 + drift * (i % 3 + 1)) % (w + 20)) - 10, y = ((i * 571.71 + 37) % h);
+      const twinkle = this.reduced ? 1 : .76 + Math.sin(this.clock * .35 + i * 1.4) * .24;
+      this.fillCircle(x, y, i % 17 ? .6 : 1.25, i % 4 ? '#BFC4D1' : '#B1A69F', (i % 17 ? .22 : .43) * twinkle);
+    }
+    if (ruin > .4) {
+      c.save(); c.globalAlpha = (ruin - .4) * .14; c.strokeStyle = '#AA7780'; c.lineWidth = 1;
+      for (let i = 0; i < 4; i++) {
+        const x = w * (.08 + i * .27), y = i % 2 ? h : 0, direction = i % 2 ? -1 : 1;
+        c.beginPath(); c.moveTo(x, y); c.lineTo(x + 21, y + direction * h * .08); c.lineTo(x - 13, y + direction * h * .17);
+        c.lineTo(x + 17, y + direction * h * .27 * ruin); c.stroke();
+      }
+      c.restore();
+    }
+  }
+
+  glow(x, y, r, color, alpha = .2) {
+    if (!(r > 0) || !(alpha > 0)) return;
+    const c = this.ctx, gradient = c.createRadialGradient(x, y, 0, x, y, r);
+    gradient.addColorStop(0, color); gradient.addColorStop(1, 'transparent');
+    c.save(); c.globalAlpha = clamp(alpha); c.fillStyle = gradient; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
+  }
+
+  organic(x, y, r, color, fill, seed = 0, lobes = 5, alpha = 1, width = 1) {
+    const c = this.ctx, points = [];
+    for (let i = 0; i < 12; i++) {
+      const a = i * TAU / 12, d = r * (1 + .12 * Math.sin(a * lobes + seed) + .06 * Math.cos(a * 3 - seed));
+      points.push({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d });
+    }
+    c.save(); c.globalAlpha = alpha; c.fillStyle = fill; c.strokeStyle = color; c.lineWidth = width;
+    c.beginPath(); c.moveTo((points[0].x + points[11].x) / 2, (points[0].y + points[11].y) / 2);
+    for (let i = 0; i < 12; i++) {
+      const p = points[i], next = points[(i + 1) % 12];
+      c.quadraticCurveTo(p.x, p.y, (p.x + next.x) / 2, (p.y + next.y) / 2);
+    }
+    c.closePath(); c.fill(); c.stroke(); c.restore();
+  }
+
+  inwardDust(x, y, r, color, age = this.clock, alpha = .6, spiral = false) {
+    const count = this.low ? 4 : 11;
+    for (let i = 0; i < count; i++) {
+      const t = this.reduced ? (i + .5) / count : (age * .65 + i * .618) % 1;
+      const a = i * 2.399 + (spiral && !this.reduced ? age * .3 + t * .9 : 0), d = r * (1 - t);
+      const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d;
+      this.fillCircle(px, py, 1 + (i % 3) * .3, color, alpha * (.3 + t * .6));
+      if (!this.low) this.line(px, py, x + Math.cos(a - .04) * (d + 5), y + Math.sin(a - .04) * (d + 5), color, .7, alpha * .24);
+    }
+  }
+
+  targetingPreview() {
+    const p = this.preview;
+    if (!p) return;
+    const color = p.valid === false ? '#848493' : ({ overcharge: C.chain, bomb: C.bomb, hole: C.singularity, cut: C.text, orbital: C.swarm, seed: C.infection }[p.id] || C.text);
+    const x = finite(p.x), y = finite(p.y), circles = p.circles?.length ? p.circles : p.id !== 'cut' && p.mode !== 'seed-steer' && finite(p.r) > 0 ? [{ x, y, r: p.r }] : [];
+    if (p.mode === 'seed-steer') {
+      const a = finite(p.angle), r = finite(p.r), half = Math.PI / 4;
+      this.circle(x, y, r, color, 1, .65, a - half, a + half, [4, 6]);
+      for (const side of [-half, half]) this.line(x, y, x + Math.cos(a + side) * r, y + Math.sin(a + side) * r, color, 1, .55, [4, 6]);
+    }
+    for (const circle of circles) {
+      const cx = finite(circle.x, x), cy = finite(circle.y, y), r = finite(circle.r);
+      this.fillCircle(cx, cy, r, color, this.high ? .1 : .035);
+      this.circle(cx, cy, r, color, this.high ? 1.5 : 1, .64, 0, TAU, [3, 7]);
+      if (p.id === 'hole') { this.inwardDust(cx, cy, r, color, this.clock, .5, true); this.fillCircle(cx, cy, 8, '#080711', .75); }
+      if (p.id === 'bomb') { this.glow(cx, cy, 23, color, .28); this.fillCircle(cx, cy, 6, color, .34); this.circle(cx, cy, 8, color, 1, .7); }
+      if (p.id === 'orbital' && circle.kind === 'impact') this.incomingShot(cx, cy, r, color, .25, .34, this.width * .3, -48);
+    }
+    for (const line of p.lines || []) {
+      this.lineHitbox(line.x, line.y, line.x2, line.y2, line.width, color, .2, [3, 7]);
+      this.line(line.x, line.y, line.x2, line.y2, color, .9, .8, [9, 6]);
+    }
+    const preChain = p.preChain || [], previousColor = '#D8CEAE';
+    for (const circle of p.preCircles || []) {
+      this.fillCircle(circle.x, circle.y, circle.r, previousColor, .02);
+      this.circle(circle.x, circle.y, circle.r, previousColor, .8, .35, 0, TAU, [3, 9]);
+    }
+    for (let i = 1; i < preChain.length; i++)
+      this.zigzag(preChain[i - 1].x, preChain[i - 1].y, preChain[i].x, preChain[i].y, previousColor, .8, .5, i + finite(preChain[i].id), [3, 8]);
+    const chain = p.mode === 'circuit' ? [{ x, y }, ...(p.chain || [])] : p.chain || [];
+    for (let i = 1; i < chain.length; i++) {
+      this.zigzag(chain[i - 1].x, chain[i - 1].y, chain[i].x, chain[i].y, color, .8, .45, i + finite(chain[i].id), [3, 8]);
+      this.fillCircle(chain[i].x, chain[i].y, 2, color, .75);
+    }
+    if (p.origin && (p.mode !== 'cast') && Math.hypot(p.origin.x - x, p.origin.y - y) > 3)
+      this.line(p.origin.x, p.origin.y, x, y, color, .8, .35, [4, 7]);
+    for (const [i, point] of (p.records || []).entries()) {
+      this.fillCircle(point.x, point.y, 2, color, .7);
+      this.label(i + 1, point.x, point.y - 10, color, 10, 'center', .65);
+    }
   }
 
   anchors(warnings) {
@@ -171,17 +259,23 @@ export class Renderer {
     for (const [i, a] of (this.game.anchors || []).entries()) {
       const threats = enemies.filter(e => !e.dead && e.anchorIndex === i && finite(e.channel) > 0);
       const active = threats.some(e => finite(e.channel) >= 2), busy = threats.length || a.channeling;
-      const x = a.x, y = a.y, r = finite(a.r, 24), color = active ? C.danger : busy ? '#FF9C78' : '#B08CFF';
+      const integrity = clamp(finite(this.game.integrity, 100) / Math.max(1, finite(this.game.maxIntegrity, 100)));
+      const x = a.x, y = a.y, r = finite(a.r, 24), color = active ? C.danger : busy ? '#FF9C78' : integrity < .4 ? '#B78C8C' : '#CEC5B0';
       if (!warnings) {
-        this.circle(x, y, r + 24, '#9D7CFF', .7, this.high ? .3 : .18, 0, TAU, [2, 9]);
-        this.polygon(x, y, r + 4, 6, color, '#06060B', Math.PI / 6, 1.5, .7);
-        this.polygon(x, y, r * .62, 6, busy ? color : '#E6D3FF', '#0D0817', Math.PI / 6, 1.3, .85);
-        this.line(x - 7, y, x + 7, y, busy ? color : '#FFFFFF', 1.7, .9);
-        this.line(x, y - 7, x, y + 7, busy ? color : '#FFFFFF', 1.7, .9);
-        this.fillCircle(x, y, 2.3, busy ? color : '#E6D3FF', .9);
+        const breath = this.reduced ? 1 : .94 + Math.sin(this.clock * 1.5 + i * 2) * .06;
+        this.glow(x, y, r * (busy ? 4.8 : 4) * breath, color, (busy ? .18 : .11) + integrity * .07);
+        this.organic(x, y, r + 3, '#69667A', '#161623', i * 2.9, 4, .95, 1.1);
+        this.organic(x, y, r * .56 * breath, color, '#837D82', i * 1.7, 3, .55 + integrity * .35, .8);
+        this.glow(x, y, r * .8, color, .45 + integrity * .25);
+        this.fillCircle(x - 2, y - 2, 3 + integrity * 2, '#F5EBD5', .55 + integrity * .4);
         for (let k = 0; k < 3; k++) {
-          const angle = k * TAU / 3 - Math.PI / 2;
-          this.line(x + Math.cos(angle) * (r + 7), y + Math.sin(angle) * (r + 7), x + Math.cos(angle) * (r + 13), y + Math.sin(angle) * (r + 13), color, 1.5, .55);
+          const angle = k * TAU / 3 + i, start = integrity < .7 ? r * .18 : r * .65;
+          this.line(x + Math.cos(angle) * start, y + Math.sin(angle) * start, x + Math.cos(angle + .25) * r, y + Math.sin(angle + .25) * r, integrity < .4 ? '#36222F' : '#12111E', 1.5, .7);
+        }
+        for (const fx of (this.game.effects || []).slice(-32)) {
+          if (fx.kind !== 'arc' || finite(fx.age) < finite(fx.delay)) continue;
+          const ax = finite(fx.toX, fx.x), ay = finite(fx.toY, fx.y), distance = Math.hypot(ax - x, ay - y);
+          if (distance < 220) this.glow(x, y, r * 2.5, C.chain, (1 - distance / 220) * clamp(1 - (fx.age - finite(fx.delay)) / .18) * .38);
         }
         if(busy)this.label(`고정점 ${i + 1}`, x, y + r + 33, active ? '#FF899B' : '#998AAA', 11, 'center', .9);
         if (finite(a.damageFlash) > 0) this.circle(x, y, r + 10, C.danger, 3, clamp(a.damageFlash * 4));
@@ -205,7 +299,6 @@ export class Renderer {
       const protectedEnemies = enemies.filter(n => !n.dead && n.id !== e.id && finite(n.linkBroken) <= 0 && n.protectedBy === e.id).slice(0, 3);
       for (const n of protectedEnemies) {
         this.line(e.x, e.y, n.x, n.y, '#659CD4', this.low ? 1 : .8, this.high ? .65 : .4, [3, 4]);
-        if (!this.low) this.polygon(n.x, n.y, n.r + 5, 4, '#659CD4', null, 0, .8, .3);
       }
     }
   }
@@ -215,71 +308,78 @@ export class Renderer {
     const x = finite(f.x), y = finite(f.y), r = finite(f.r, finite(f.radius, 40));
     const age = finite(f.age), p = fraction(f), color = f.color || ({ bomb: C.bomb, hole: C.singularity, fire: C.impact, command: C.swarm, seed: C.infection, soil: C.infection, cone: C.infection, network: C.swarm }[f.type] || C.text);
     const c = this.ctx;
+    if (f.slot?.evolution >= 3 && age < .32 && !f.ghost && !f.mini && !['soil', 'trail', 'fire', 'residue'].includes(f.type)) {
+      const opening = 1 - age / .32, radius = Math.max(70, r);
+      this.glow(x, y, radius * 1.5, color, opening * .24);
+      if (!this.low) for (let i = 0; i < 6; i++) {
+        const angle = i * TAU / 6 + .4, distance = radius * (this.reduced ? .7 : .3 + (1 - opening) * .55);
+        this.line(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance, x + Math.cos(angle) * (distance + 16 * opening), y + Math.sin(angle) * (distance + 16 * opening), color, 1.2, opening * .45);
+      }
+    }
     switch (f.type) {
       case 'bomb': {
-        this.fillCircle(x, y, r, color, .025);
-        this.clockRing(x, y, r, color, p, 8, 1, p < .2 ? 1.1 : 1.8);
-        this.polygon(x, y, 7, 4, color, '#101019', Math.PI / 4, 1.5);
-        this.line(x - 3, y, x + 3, y, color, 1.3);
-        this.label(f.ghost || f.ghostIndex != null ? `ECHO ${finite(f.ghostIndex, f.order || 1)}` : f.record ? 'RECORD' : 'ARMED', x, y + 17, color, 9, 'center', .8);
-        this.label(`${Math.max(0, finite(f.remaining, f.duration - age)).toFixed(1)}`, x, y - 19, color, 9, 'center');
+        const pulse = this.reduced ? 1 : 1 + Math.sin(age * (12 + (1 - p) * 16)) * .018;
+        this.fillCircle(x, y, r, color, .022);
+        this.circle(x, y, r, color, 1, .4 + (1 - p) * .35);
+        if (!this.low && !this.reduced) this.circle(x, y, r * pulse, color, .8, .18);
+        this.glow(x, y, 25 - (1 - p) * 10, color, .5);
+        this.organic(x, y, 5 + p * 6, color, '#13101B', age, 4, 1, 1.3);
+        this.fillCircle(x, y, 2 + p * 1.5, '#F4DDD9', .7 + (1 - p) * .3);
+        this.inwardDust(x, y, r * .86, color, age * 2, .8);
         if (f.records) for (const [i, point] of f.records.entries()) {
           const radius = f.slot?.branch === 'compression' ? 22 : 30;
-          this.clockRing(point.x, point.y, radius, color, p, 8, .55, 1);
-          this.label(String(i + 1), point.x, point.y, color, 9, 'center', .7);
+          this.circle(point.x, point.y, radius, color, .8, .45, 0, TAU, [3, 7]);
+          this.fillCircle(point.x, point.y, 3, color, .55);
           this.line(x, y, point.x, point.y, color, .7, .18, [2, 8]);
         }
         break;
       }
       case 'hole': {
-        this.fillCircle(x, y, r, '#583995', .08);
-        this.circle(x, y, r, color, 1, .7);
+        const core = 12 + Math.min(6, finite(f.mass)) * 1.5;
+        this.glow(x, y, r * 1.15, '#68627E', .22);
+        this.circle(x, y, r, color, .9, .25);
         const movement = this.reduced ? .5 : (age * .42 % 1);
         for (let i = 0; i < (this.low ? 2 : 3); i++) {
           const k = ((movement + i / 3) % 1);
-          this.circle(x, y, 12 + (r - 12) * (1 - k), color, .9, .15 + .4 * k);
+          this.circle(x, y, core + (r - core) * (1 - k), color, .9, .07 + .2 * k, i * 2, i * 2 + Math.PI * 1.3);
         }
-        this.fillCircle(x, y, 11, '#03030C');
-        this.circle(x, y, 12, color, 1.8, .9);
-        for (let i = 0; i < 4; i++) {
-          const a = i * Math.PI / 2;
-          this.arrow(x + Math.cos(a) * (r - 18), y + Math.sin(a) * (r - 18), a + Math.PI, color, 8, .6);
-        }
-        this.clockRing(x, y, 19, color, finite(f.mass) / 8, 8, .9, 2.5);
-        this.label(`M${finite(f.mass)}`, x, y + 32, color, 9, 'center', .8);
+        this.inwardDust(x, y, r, '#CDC3E3', age, .7, true);
+        this.fillCircle(x, y, core, '#010208');
+        this.circle(x, y, core + 1.5, '#D6CAE1', 1.5, .8, -.25, Math.PI * 1.7);
+        this.circle(x, y, core + 7, color, .7, .5, age, age + Math.PI * .9);
         const sibling = (this.game.fields || []).find(other => other.type === 'hole' && !other.removed && other.groupId != null && other.groupId === f.groupId && other.id > f.id);
-        if (sibling) this.line(x, y, sibling.x, sibling.y, color, .8, .45, [3, 6]);
+        if (sibling) this.line(x, y, sibling.x, sibling.y, color, .8, .24, [3, 8]);
         if (finite(f.foldUntil) > this.time) {
-          this.clockRing(x, y, 27, color, clamp((f.foldUntil - this.time) / 1.2), 8, .9);
-          this.label('SET POINT B', x, y - 36, color, 8, 'center');
+          this.circle(x, y, 27, color, 1, .65, 0, TAU, [3, 5]);
         }
         if (finite(f.remaining, f.duration - age) <= finite(f.collapsePreview, .35)) this.clockRing(x, y, finite(f.endRadius, finite(f.collapseRadius, 80)), C.text, 1 - clamp(finite(f.remaining, f.duration - age) / finite(f.collapsePreview, .35)), 12, .9, 1.7);
         if (f.bx !== undefined) { this.line(x, y, f.bx, f.by, color, 1, .55, [5, 5]); this.polygon(f.bx, f.by, 10, 4, color, null, 0, 1.5); }
         break;
       }
       case 'residue':
-        this.circle(x, y, r, color, 1, .55 * p, 0, TAU, [3, 7]);
-        this.circle(x, y, r * .7, color, .7, .2 * p); break;
+        this.glow(x, y, r, color, .1 * p);
+        this.inwardDust(x, y, r, color, age, .3 * p); break;
       case 'fire':
-        this.circle(x, y, r, color, 1, .55, 0, TAU, [2, 5]);
+        this.glow(x, y, r, color, .16);
         for (let i = 0; i < (this.low ? 2 : 5); i++) {
           const a = i * 2.4, d = r * .6 * ((i + 1) / 5);
-          this.glyph('burn', x + Math.cos(a) * d, y + Math.sin(a) * d, color, 5, .6);
+          const lift = this.reduced ? 0 : age * 7 % 13;
+          this.fillCircle(x + Math.cos(a) * d, y + Math.sin(a) * d - lift, 2, color, .5);
         }
         break;
       case 'command': {
-        this.circle(x, y, r, color, .8, .3, 0, TAU, [4, 8]);
-        this.brackets(x, y, r, color, .7);
-        this.label('COMMAND', x, y - r - 12, color, 9, 'center', .7);
+        this.glow(x, y, r, color, .07);
+        this.circle(x, y, r, color, .7, .14, 0, TAU, [2, 12]);
         for (const s of f.shots || []) {
           if (s.fired) continue;
           const left = finite(s.at) - age, window = finite(f.warning, f.branch === 'hunter' || f.hunter ? .5 : .35);
           if (left > window || left < -.05) continue;
           const sx = finite(s.x, x), sy = finite(s.y, y), sr = finite(s.r, finite(s.radius, 44));
-          this.circle(sx, sy, sr, color, s.locked || left <= .3 ? 1.4 : 1, .9, 0, TAU, s.locked || left <= .3 ? null : [5, 5]);
-          this.clockRing(sx, sy, sr + 4, color, 1 - clamp(left / window), 8, .85, 1.4);
-          this.brackets(sx, sy, 8, color, 1);
-          this.label(left <= .3 || s.locked ? 'LOCK' : 'TRACK', sx, sy - sr - 10, color, 8, 'center');
+          const arrival = 1 - clamp(left / window);
+          this.fillCircle(sx, sy, sr, color, .04 + arrival * .055);
+          this.circle(sx, sy, sr, color, s.locked || left <= .3 ? 1.4 : 1, .85, 0, TAU, s.locked || left <= .3 ? null : [5, 5]);
+          this.circle(sx, sy, sr + 4, color, 1, .4, -Math.PI / 2, -Math.PI / 2 + TAU * arrival);
+          this.incomingShot(sx, sy, sr, color, arrival, .9, s.sourceX, s.sourceY);
         }
         if (!this.low) {
           this.turret(x - 24, y - 19, color, .7); this.turret(x + 24, y + 19, color, .7);
@@ -288,10 +388,9 @@ export class Renderer {
       }
       case 'seed':
       case 'soil':
-        this.circle(x, y, r, color, 1, .6, 0, TAU, [2, 5]);
-        this.clockRing(x, y, 11, color, p, 3, .8, 1.4);
+        this.glow(x, y, r, color, .11 * p);
+        this.organic(x, y, f.type === 'soil' ? 5 : 9, '#A2B590', '#233025', age * .4, 3, .7, 1);
         this.fillCircle(x, y, 2.4, color, .9);
-        if (f.type === 'soil') this.label('DORMANT', x, y + 22, color, 8, 'center', .6);
         break;
       case 'seam':
       case 'trail': {
@@ -319,15 +418,13 @@ export class Renderer {
           const next = a + end - displayAngle;
           this.line(x - Math.cos(next) * radius, y - Math.sin(next) * radius, x + Math.cos(next) * radius, y + Math.sin(next) * radius, color, 1, .35, [3, 7]);
         }
-        this.polygon(x, y, 9, 4, color, f.moved ? color : '#080D19', 0, 1.8);
-        if (!f.moved) this.label('RELOCATE', x, y + 24, color, 8, 'center', .8);
+        this.fillCircle(x, y, 3.5, color, .9);
         break;
       }
       case 'fold': {
         const x2 = finite(f.x2, x), y2 = finite(f.y2, y);
         this.lineHitbox(x, y, x2, y2, finite(f.width, 32), color, .9, [5, 4]);
         this.polygon(x, y, 7, 4, color, null, 0); this.polygon(x2, y2, 7, 4, color, null, 0);
-        this.label('FOLD', (x + x2) / 2, (y + y2) / 2 - 17, color, 9, 'center');
         break;
       }
       case 'cone': {
@@ -336,18 +433,17 @@ export class Renderer {
         this.circle(x, y, r, color, 1, .7, left, right, [3, 5]);
         this.line(x, y, x + Math.cos(left) * r, y + Math.sin(left) * r, color, 1, .7, [3, 5]);
         this.line(x, y, x + Math.cos(right) * r, y + Math.sin(right) * r, color, 1, .7, [3, 5]);
-        this.clockRing(x, y, 15, color, 1 - p, 6, .9);
-        this.label('ROUTE', x, y + 28, color, 9, 'center'); break;
+        this.inwardDust(x, y, r * .6, color, age, .4); break;
       }
       case 'network': {
-        const nx = f.followCursor === false ? x : finite(this.game.cursor?.x, x), ny = f.followCursor === false ? y : finite(this.game.cursor?.y, y);
+        const nx = x, ny = y;
         const half = finite(f.width, 24) / 2;
         this.lineHitbox(30, ny, this.width - 30, ny, half * 2, color, .65);
         this.lineHitbox(nx, 30, nx, this.height - 30, half * 2, color, .65);
         this.line(30, ny, this.width - 30, ny, color, .8, .2);
         this.line(nx, 30, nx, this.height - 30, color, .8, .2);
-        this.polygon(nx, ny, 13, 4, color, null, 0, 2);
-        this.clockRing(nx, ny, 20, color, p, 8, .9);
+        this.glow(nx, ny, 100, color, .14 * p);
+        this.organic(nx, ny, 10, color, '#131512', age, 4, .9, 1.4);
         for (const [tx, ty] of [[30, ny], [this.width - 30, ny], [nx, 30], [nx, this.height - 30]]) this.turret(tx, ty, color);
         break;
       }
@@ -364,173 +460,158 @@ export class Renderer {
   }
 
   turret(x, y, color, alpha = 1) {
-    this.brackets(x, y, 7, color, alpha, 1.4);
-    this.polygon(x, y, 4, 4, color, '#071322', Math.PI / 4, 1.2, alpha);
+    this.glow(x, y, 22, color, .15 * alpha);
+    this.organic(x, y, 7, color, '#24261C', x * .1 + y * .03, 3, alpha, 1.2);
+    this.fillCircle(x, y - 1, 2.2, '#F3E9CD', alpha);
+    this.line(x - 9, y + 7, x - 3, y + 4, color, 1.2, alpha * .6);
+    this.line(x + 9, y + 7, x + 3, y + 4, color, 1.2, alpha * .6);
+  }
+
+  incomingShot(x, y, r, color, arrival, alpha = .8, fromX, fromY) {
+    const sourceX = finite(fromX, x < this.width / 2 ? -24 : this.width + 24), sourceY = finite(fromY, -42);
+    const t = this.reduced ? .83 : clamp(arrival) * .92;
+    const px = sourceX + (x - sourceX) * t, py = sourceY + (y - sourceY) * t;
+    this.line(sourceX, sourceY, x, y, color, .7, alpha * .1, [2, 10]);
+    this.line(px - (x - sourceX) * .04, py - (y - sourceY) * .04, px, py, color, 1.5, alpha * .7);
+    this.glow(px, py, 10, color, alpha * .4);
+    this.fillCircle(px, py, 2.5, '#FFF2D1', alpha);
   }
 
   enemy(e) {
-    const c = this.ctx, x = finite(e.x), y = finite(e.y), r = finite(e.r, e.boss ? 48 : 12);
-    const color = finite(e.hitFlash) > 0 ? C.text : (enemyColors[e.type] || '#93ABC8');
-    const fill = finite(e.hitFlash) > 0 ? '#4B345F' : '#09090F';
-    const tilt = this.reduced ? 0 : Math.sin(finite(e.age) * 1.3 + finite(e.id)) * .1;
+    const c = this.ctx, r = finite(e.r, e.boss ? 48 : 12), age = finite(e.age), selected = this.previewTargets.has(e.id);
+    const statuses = e.statuses || {}, hit = finite(e.hitFlash) > 0;
+    const color = hit ? C.text : statuses.infected ? '#ADB985' : statuses.mark ? '#99C8CD' : statuses.burn || statuses.stroke ? '#D6A48A' : e.adaptation ? '#D6B991' : (enemyColors[e.type] || '#93ABC8');
+    let x = finite(e.x), y = finite(e.y);
+    // Preview displacement is optical only: no collision, damage or enemy coordinate changes.
+    if (selected && this.preview?.id === 'hole' && !this.reduced) {
+      const dx = this.preview.x - x, dy = this.preview.y - y, d = Math.hypot(dx, dy) || 1;
+      const shift = 1.8 + Math.sin(this.clock * 3 + finite(e.id)) * .7;
+      x += dx / d * shift; y += dy / d * shift;
+    }
+    if (selected) { this.fillCircle(x, y, r + 5, color, this.high ? .24 : .12); this.circle(x, y, r + 3, color, 1, .45); }
     if (e.boss) { this.boss(e, color); return; }
+    const fill = hit ? '#F0E8DB' : statuses.infected ? '#55634B' : e.elite ? '#6B5D4A' : e.type === 'drifter' ? '#A1A3AC' : '#525564';
+    const tilt = this.reduced ? 0 : Math.sin(age * 1.3 + finite(e.id)) * .12;
     c.save(); c.translate(x, y); c.rotate(tilt);
-    if (!this.low) { c.shadowColor = color; c.shadowBlur = this.high ? 4 : e.elite ? 14 : 6; }
-    if (this.high) this.circle(0, 0, r + 2, '#F1F6FF', .9, .8);
+    if (this.high) this.circle(0, 0, r + 1, '#F1F6FF', .9, .65);
     switch (e.type) {
       case 'ward':
-        this.polygon(0, 0, r, 6, color, fill, Math.PI / 6, 1.6);
-        this.polygon(0, 0, r * .55, 6, color, null, Math.PI / 6, .9, .7);
-        this.line(-r * .36, 0, r * .36, 0, color, 2);
-        this.line(0, -r * .36, 0, r * .36, color, 2); break;
+        this.organic(0, 0, r, color, fill, e.id, 3, 1, 1.2);
+        this.circle(0, 0, r * .72, color, 2.5, .65, -.85, Math.PI * 1.4);
+        this.fillCircle(0, 0, r * .28, '#B5CBCE', .85); break;
       case 'channeler':
-        this.polygon(0, 0, r + 1, 3, color, fill, -Math.PI / 2, 1.7);
-        this.polygon(0, 1, r * .37, 3, color, null, Math.PI / 2, 1.1);
-        this.line(-r * .7, r * .9, r * .7, r * .9, color, 1.2, .65); break;
+        c.save(); c.scale(.7, 1.2); this.organic(0, 0, r, color, fill, e.id, 3, 1, 1.2); c.restore();
+        for (const side of [-1, 1]) {
+          c.beginPath(); c.moveTo(side * r * .25, r * .35); c.quadraticCurveTo(side * r * 1.15, r * .55, side * r * .8, r * 1.2);
+          c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
+        }
+        this.fillCircle(0, -r * .15, 2.5, '#FFCEBD', .9); break;
       case 'splitter':
-        this.polygon(-r * .35, 0, r * .66, 4, color, fill, 0, 1.4);
-        this.polygon(r * .35, 0, r * .66, 4, color, fill, 0, 1.4);
-        this.line(0, -r, 0, r, color, .9, .6, [2, 3]); break;
+        this.organic(-r * .36, 0, r * .72, color, fill, e.id, 3, 1, .8);
+        this.organic(r * .36, 0, r * .72, color, fill, e.id + 3, 3, 1, .8);
+        this.fillCircle(-r * .35, 0, 1.7, '#D8CCE2', .8); this.fillCircle(r * .35, 0, 1.7, '#D8CCE2', .8); break;
       case 'scrubber':
-        this.polygon(0, 0, r, 8, color, fill, Math.PI / 8, 1.4);
-        this.line(-r * .45, -r * .45, r * .45, r * .45, color, 1.4);
-        this.line(r * .45, -r * .45, -r * .45, r * .45, color, 1.4);
-        this.circle(0, 0, r * .3, color, 1.2); break;
+        this.organic(0, 0, r, color, '#526248', e.id, 6, 1, 1.2);
+        this.fillCircle(0, 0, r * .38, '#222B23', .9);
+        for (let i = 0; i < 5; i++) this.fillCircle(Math.cos(i * TAU / 5) * r * .55, Math.sin(i * TAU / 5) * r * .55, 1.4, color, .8); break;
       case 'jammer':
-        this.polygon(0, 0, r, 4, color, fill, Math.PI / 4, 1.5);
-        this.circle(0, 0, r * .45, color, 1.1, .8, -.8, .8);
-        this.circle(0, 0, r * .7, color, 1, .65, 2.4, 3.9);
-        this.line(-4, -4, 4, 4, color, 1.4); break;
+        c.beginPath(); c.moveTo(-r * 1.1, r * .4); c.bezierCurveTo(-r, -r, r, -r, r * 1.1, r * .4);
+        c.quadraticCurveTo(0, -r * .22, -r * 1.1, r * .4); c.closePath(); c.fillStyle = fill; c.fill(); c.strokeStyle = color; c.lineWidth = 1.1; c.stroke();
+        this.fillCircle(0, -r * .3, 2, color); break;
       case 'anchor':
-        this.polygon(0, 0, r, 5, color, fill, -Math.PI / 2, 1.6);
-        this.line(-r * .5, r * .15, r * .5, r * .15, color, 1.6);
-        this.line(0, -r * .6, 0, r * .5, color, 1.6);
-        this.circle(0, -r * .38, r * .15, color, 1); break;
+        this.organic(0, 0, r, color, '#6D6453', e.id, 4, 1, 1.5);
+        this.line(-r * .65, -.2 * r, -.15 * r, .3 * r, '#302B29', 2);
+        this.line(-.15 * r, .3 * r, .45 * r, -.6 * r, '#302B29', 2);
+        this.fillCircle(r * .23, -r * .2, 2.5, '#E6C89B', .8); break;
       case 'mirror':
-        this.polygon(0, 0, r, 4, color, fill, 0, 1.7);
-        this.line(-r * .55, -r * .2, r * .2, -r * .55, color, 1.1, .7);
-        this.line(-r * .2, r * .55, r * .55, r * .2, color, 1.1, .7);
-        this.line(0, -r * .8, 0, r * .8, color, .8, .45); break;
+        c.save(); c.scale(.66, 1); this.organic(0, 0, r, color, '#727485', e.id, 2, 1, 1.2); c.restore();
+        this.circle(-r * .13, -r * .18, r * .54, '#E4DEDF', 1.1, .7, Math.PI, Math.PI * 1.6); break;
       default:
-        c.beginPath(); c.moveTo(0, -r); c.lineTo(r * .78, -r * .12); c.lineTo(r * .3, r * .72);
-        c.lineTo(-r * .72, r * .4); c.lineTo(-r * .58, -r * .4); c.closePath();
-        c.fillStyle = finite(e.hitFlash) > 0 ? '#F2E9FF' : finite(this.game.worldTime) < 480 ? '#D8CCFF' : '#9D87C4'; c.fill(); c.strokeStyle = color; c.lineWidth = 1.3; c.stroke();
-        this.line(-r * .26, -r * .22, r * .28, r * .22, color, 1, .6); break;
+        this.organic(0, 0, r, color, fill, e.id + (this.reduced ? 0 : age * .12), 3, .93, .7);
+        this.fillCircle(-r * .22, -r * .12, r * .23, '#DDD9D0', .8); break;
     }
     if (e.elite) {
-      this.polygon(0, 0, r + 5, 4, C.swarm, null, Math.PI / 4, 1, .8);
-      this.polygon(0, -r - 9, 3.5, 3, C.swarm, C.swarm, -Math.PI / 2, .8);
+      this.organic(0, 0, r * .6, C.swarm, '#87734D', e.id, 4, .35, .7);
+      this.fillCircle(0, -r - 5, 2, C.swarm, .85);
     }
     c.restore();
     if (finite(e.shield) > 0) {
       const p = clamp(e.shield / Math.max(1, finite(e.maxShield, e.shield)));
-      this.circle(x, y, r + 5, '#74B9EF', 2.2, .7, -Math.PI / 2, -Math.PI / 2 + TAU * p);
+      this.circle(x, y, r + 3, '#74B9EF', 1.6, .65, -.8, -.8 + Math.PI * 1.6 * p);
     }
-    const cursor = this.game.cursor || { x: 0, y: 0 };
-    const near = Math.hypot(cursor.x - x, cursor.y - y) < 70;
-    if (near || e.elite || e.type === 'channeler' || (e.hp < e.maxHp && !this.low && (this.game.enemies?.length || 0) < 80)) this.health(e, color);
-    if (near || e.elite) this.label(enemyNames[e.type] || '우선 목표', x, y - r - 18, e.elite ? C.swarm : color, 11, 'center', .9);
+    const special = !['drifter', 'splitter'].includes(e.type);
+    if (e.elite || special || finite(e.maxHp) >= 450) this.health(e, color);
+    if (e.elite) this.label('강적', x, y - r - 14, C.swarm, 11, 'center', .85);
   }
 
   health(e, color) {
     const c = this.ctx, width = e.boss ? Math.min(136, e.r * 2.5) : Math.max(22, e.r * 2), y = e.y + e.r + (e.boss ? 20 : 9);
     c.fillStyle = '#181821'; c.fillRect(e.x - width / 2, y, width, e.boss ? 4 : 2);
     c.fillStyle = color; c.fillRect(e.x - width / 2, y, width * clamp(e.hp / Math.max(1, e.maxHp)), e.boss ? 4 : 2);
-    if (e.boss) this.label(`${Math.ceil(e.hp).toLocaleString()} / ${Math.ceil(e.maxHp).toLocaleString()}`, e.x, y + 17, color, 9, 'center');
   }
 
   boss(e, color) {
-    const x = e.x, y = e.y, r = finite(e.r, 48), age = finite(e.age);
-    this.fillCircle(x, y, r + 12, '#120818', .8);
-    this.circle(x, y, r + 12, color, 1, .3, 0, TAU, [3, 8]);
-    if (e.type === 'archivist') {
-      for (let i = 2; i >= 0; i--) {
-        const off = i * 6, c = this.ctx;
-        c.save(); c.strokeStyle = color; c.fillStyle = i === 0 ? '#1E182D' : '#100E1C'; c.lineWidth = i === 0 ? 2 : 1;
-        c.beginPath(); c.moveTo(x - r + off, y - r * .55 - off); c.lineTo(x - r * .3 + off, y - r * .55 - off);
-        c.lineTo(x - r * .12 + off, y - r * .8 - off); c.lineTo(x + r + off, y - r * .8 - off);
-        c.lineTo(x + r + off, y + r * .65 - off); c.lineTo(x - r + off, y + r * .65 - off); c.closePath(); c.fill(); c.stroke(); c.restore();
-      }
-      for (let k = -1; k <= 1; k++) this.line(x - r * .5, y + k * 8, x + r * .5, y + k * 8, color, 1, .6);
-    } else if (e.type === 'conductor') {
-      this.polygon(x, y, r, 8, color, '#201D18', Math.PI / 8, 2);
-      for (let i = 0; i < 8; i++) {
-        const a = i * TAU / 8 + (this.reduced ? 0 : age * .08);
-        this.line(x + Math.cos(a) * r * .48, y + Math.sin(a) * r * .48, x + Math.cos(a) * r * .82, y + Math.sin(a) * r * .82, color, 2, .85);
-        this.polygon(x + Math.cos(a) * (r + 14), y + Math.sin(a) * (r + 14), 4.5, 4, color, null, 0, 1.2);
-      }
-      this.polygon(x, y, r * .38, 4, color, '#15120C', Math.PI / 4, 2);
-      this.circle(x, y, r * .14, color, 1.5);
-    } else {
-      this.polygon(x, y, r, 6, color, '#22131F', Math.PI / 6, 2.1);
-      this.polygon(x, y, r * .72, 6, color, '#100E1B', 0, 1.4);
-      this.polygon(x, y, r * .4, 3, C.text, '#251424', -Math.PI / 2, 1.8);
-      for (let i = 0; i < 6; i++) {
-        const a = i * TAU / 6 + Math.PI / 6;
-        this.line(x + Math.cos(a) * r * .78, y + Math.sin(a) * r * .78, x + Math.cos(a) * (r + 10), y + Math.sin(a) * (r + 10), color, 4, .9);
-      }
+    const c = this.ctx, x = e.x, y = e.y, r = finite(e.r, 48), age = finite(e.age);
+    const motion = this.reduced ? 0 : age * .15, lobes = e.type === 'archivist' ? 6 : e.type === 'conductor' ? 8 : 3;
+    this.glow(x, y, r * 2.4, color, .13);
+    // Each boss is a massive living nucleus with a distinct silhouette.
+    c.save(); c.translate(x, y); c.rotate(motion);
+    for (let i = 0; i < lobes; i++) {
+      const a = i * TAU / lobes, length = r * (e.type === 'reality' ? 1.5 : 1.25);
+      c.beginPath(); c.moveTo(Math.cos(a - .3) * r * .5, Math.sin(a - .3) * r * .5);
+      c.bezierCurveTo(Math.cos(a - .23) * length, Math.sin(a - .23) * length,
+        Math.cos(a + .23) * length, Math.sin(a + .23) * length,
+        Math.cos(a + .3) * r * .5, Math.sin(a + .3) * r * .5);
+      c.closePath(); c.fillStyle = e.type === 'conductor' ? '#69624B' : e.type === 'archivist' ? '#5A5268' : '#6A414E';
+      c.fill(); c.strokeStyle = color; c.lineWidth = 1.2; c.globalAlpha = .85; c.stroke();
+      this.line(Math.cos(a) * r * .5, Math.sin(a) * r * .5, Math.cos(a) * length * .8, Math.sin(a) * length * .8, '#211D28', 2, .7);
     }
+    this.organic(0, 0, r * .75, color, '#242332', 1 + motion, lobes, 1, 1.6);
+    this.fillCircle(0, 0, r * .42, '#090B14');
+    this.circle(0, 0, r * .43, '#CEC4B9', 1.4, .7, -.4, Math.PI * 1.5);
+    this.glow(0, 0, r * .34, color, .6);
+    this.organic(0, 0, r * .16, '#F5DFD6', color, motion * 3, 3, 1, 1.2);
+    c.restore();
+    if (finite(e.shield) > 0) this.circle(x, y, r + 5, '#83A4B5', 2, .6, 0, TAU * clamp(e.shield / Math.max(1, finite(e.maxShield, e.shield))));
     if (this.high) this.circle(x, y, r + 2, C.text, 1, .7);
-    this.label(enemyNames[e.type] || 'WORLD CORE', x, y - r - 29, color, 11, 'center');
-    this.label(`${finite(e.phaseIndex, finite(e.phase, 1) - 1) + 1}단계`, x, y - r - 15, '#9B7F91', 10, 'center');
+    this.label(enemyNames[e.type] || '세계의 핵', x, y - r * 1.4 - 15, color, 12, 'center');
     this.health(e, color);
   }
 
   statusPass() {
-    const game = this.game, cursor = game.cursor || { x: 0, y: 0 }, crowded = (game.enemies || []).filter(e => !e.dead).length > 80;
-    const clusters = new Map();
-    for (const e of game.enemies || []) {
+    for (const e of this.game.enemies || []) {
       if (e.dead) continue;
-      const statuses = e.statuses || {}, important = e.boss || e.elite || e.type === 'channeler' || e.adaptation || e.weakness || Math.hypot(cursor.x - e.x, cursor.y - e.y) < 160;
-      if (crowded && !important) {
-        const primary = statuses.infected ? 'infected' : statuses.mark ? 'mark' : null;
-        if (primary) {
-          const key = `${primary}:${Math.floor(e.x / 120)}:${Math.floor(e.y / 120)}`;
-          const cluster = clusters.get(key) || { x: 0, y: 0, count: 0, type: primary };
-          cluster.x += e.x; cluster.y += e.y; cluster.count++; clusters.set(key, cluster);
+      const s = e.statuses || {}, r = finite(e.r, 12), age = this.reduced ? 0 : this.time;
+      // The creature carries its status; there are no stacked UI rings or counters.
+      if (s.infected) {
+        const count = this.low ? 1 : Math.min(3, Math.max(1, finite(s.infected.stacks, 1)));
+        for (let i = 0; i < count; i++) {
+          const a = e.id * 2.399 + i * 2.1 + age * .4, drift = this.reduced ? 0 : age * 5 % 9;
+          this.fillCircle(e.x + Math.cos(a) * (r + 2), e.y + Math.sin(a) * (r + 2) - drift, 1.6, '#AEC58E', .7);
         }
-        continue;
+      } else if (s.mark) {
+        this.zigzag(e.x - r * .4, e.y - r * .3, e.x + r * .35, e.y + r * .3, C.chain, 1, .7, e.id);
+      } else if (s.burn || s.stroke) {
+        this.fillCircle(e.x + r * .4, e.y - r * .2, 2, '#E2B08F', .7);
       }
-      let secondary = 0;
-      if (statuses.infected) {
-        const s = statuses.infected, r = e.r + 9;
-        this.clockRing(e.x, e.y, r, C.infection, clamp(s.remaining / Math.max(.1, finite(s.duration, 3))), 3, .95, 1.8);
-        for (let i = 0; i < finite(s.stacks, 1); i++) this.fillCircle(e.x + (i - (finite(s.stacks, 1) - 1) / 2) * 5, e.y - e.r - 15, 1.4, C.infection);
-        if (finite(s.duration, 3) > 3) this.label(`${Math.ceil(s.remaining)}s`, e.x, e.y + e.r + 20, C.infection, 8, 'center');
-      } else if (statuses.mark) {
-        const s = statuses.mark;
-        this.glyph('mark', e.x + e.r + 6, e.y - e.r - 2, C.chain, 6);
-        this.circle(e.x, e.y, e.r + 7, C.chain, 1.1, .6, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(s.remaining / Math.max(.1, finite(s.duration, 4))));
+      if (s.exposed || s.rupture) {
+        this.line(e.x - r * .3, e.y - r * .5, e.x + r * .1, e.y, '#F2E2D3', 1.2, .75);
+        this.line(e.x + r * .1, e.y, e.x - r * .1, e.y + r * .45, '#F2E2D3', 1, .7);
       }
-      if (statuses.infected && statuses.mark) { this.glyph('mark', e.x - e.r - 5, e.y, C.chain, 5); secondary++; }
-      for (const [type, color] of [['exposed', C.text], ['rupture', C.text], ['stroke', C.impact], ['burn', C.impact], ['lease', C.swarm]]) {
-        if (!statuses[type] || secondary >= 2) continue;
-        this.glyph(type, e.x + (secondary ? -1 : 1) * (e.r + 8), e.y + e.r * .35, color, 5.5);
-        secondary++;
-      }
-      const strain = statuses.strain;
-      if (strain && e.boss) {
-        for (let i = 0; i < 4; i++) {
-          const a = -Math.PI * .8 + i * Math.PI * .2;
-          this.line(e.x + Math.cos(a) * (e.r + 19), e.y + Math.sin(a) * (e.r + 19), e.x + Math.cos(a) * (e.r + 26), e.y + Math.sin(a) * (e.r + 26), C.singularity, i < finite(strain.stacks, finite(strain.count)) ? 2.5 : 1, i < finite(strain.stacks, finite(strain.count)) ? 1 : .3);
+      if (s.strain && e.boss) {
+        const count = Math.min(4, finite(s.strain.stacks, finite(s.strain.count)));
+        for (let i = 0; i < count; i++) {
+          const a = i * TAU / 4 + .4;
+          this.line(e.x + Math.cos(a) * r * .55, e.y + Math.sin(a) * r * .55, e.x + Math.cos(a + .18) * r * .9, e.y + Math.sin(a + .18) * r * .9, C.singularity, 2, .7);
         }
       }
       if (e.adaptation || e.weakness) {
-        const color = C.swarm;
-        this.circle(e.x, e.y, e.r + 13, color, 1, .65, -.3, .65);
-        this.circle(e.x, e.y, e.r + 13, color, 1, .65, 1.5, 2.4);
-        this.circle(e.x, e.y, e.r + 13, color, 1, .65, 3.2, 4.1);
-        const weak = typeof e.weakness === 'string' ? e.weakness : e.weakness?.source || e.adaptation?.weakness || 'DIRECT';
-        this.sourceGlyph(weak, e.x + e.r + 17, e.y - e.r - 7, color);
-        if (important) this.label(String(weak).replace('_', ' '), e.x + e.r + 25, e.y - e.r - 7, color, 8);
+        const weak = typeof e.weakness === 'string' ? e.weakness : e.weakness?.source || e.adaptation?.weakness || 'IMPACT';
+        const color = ({ CHAIN:C.chain, INFECTION:C.infection, SINGULARITY:C.singularity, SWARM:C.swarm, IMPACT:C.impact, CASTER:C.text }[weak] || C.impact);
+        // One bright body seam shows the weakness while leaving the silhouette clear.
+        this.line(e.x + r * .5, e.y - r * .45, e.x + r * .8, e.y + r * .18, color, 2.2, .9);
+        if (e.elite || e.boss) this.label(String(weak).replace('_', ' '), e.x, e.y + r + 22, color, 11, 'center', .85);
       }
-    }
-    for (const cluster of clusters.values()) {
-      if (cluster.count < 2) continue;
-      const x = cluster.x / cluster.count, y = cluster.y / cluster.count - 20;
-      const color = cluster.type === 'infected' ? C.infection : C.chain;
-      this.glyph(cluster.type, x - 10, y, color, 5, .7);
-      this.label(`×${cluster.count}`, x, y, color, 9, 'left', .75);
     }
   }
 
@@ -564,68 +645,106 @@ export class Renderer {
   controlSignals() {
     const beacon = this.game.beacon;
     if (beacon && finite(beacon.remaining) > 0) {
-      this.brackets(beacon.x, beacon.y, 10, C.swarm, 1, 1.8);
-      this.clockRing(beacon.x, beacon.y, 16, C.swarm, beacon.remaining / 3, 8, .9, 1.5);
+      this.glow(beacon.x, beacon.y, 28, C.swarm, .2);
+      this.organic(beacon.x, beacon.y, 7, C.swarm, '#2A2C21', this.time * .3, 3, .9, 1.2);
       this.circle(beacon.x, beacon.y, 60, C.swarm, .8, .4, 0, TAU, [2, 7]);
-      this.label('RELAY BEACON', beacon.x, beacon.y - 28, C.swarm, 8, 'center');
     }
     for (const e of this.game.enemies || []) {
       if (e.dead) continue;
       if (e.type === 'scrubber' && e.purifying) {
         this.circle(e.x, e.y, 70, C.infection, 1, .55, 0, TAU, [3, 7]);
-        this.clockRing(e.x, e.y, e.r + 18, C.infection, clamp((e.age % 7 - 5) / 1.5), 6, .75);
-        this.label('PURIFYING', e.x, e.y - e.r - 30, C.infection, 8, 'center');
+        this.inwardDust(e.x, e.y, 70, C.infection, e.age, .55);
       }
       if (e.type === 'jammer') {
         this.circle(e.x, e.y, 100, '#CE94E0', .8, this.high ? .55 : .23, 0, TAU, [2, 9]);
-        this.brackets(e.x, e.y, e.r + 7, '#CE94E0', .65, 1);
       }
     }
   }
 
   effect(f) {
-    const age = finite(f.age), life = Math.max(.001, finite(f.maxLife, finite(f.life, .4))), p = clamp(age / life);
+    const delay = finite(f.delay), age = finite(f.age) - delay;
+    if (age < 0) return;
+    const life = Math.max(.001, finite(f.maxLife, finite(f.life, .4)) - delay), p = clamp(age / life);
     if (p >= 1) return;
     const x = finite(f.x), y = finite(f.y), color = f.color || C.text, r = finite(f.r, 22), alpha = Math.pow(1 - p, .8);
     const x2 = finite(f.toX, finite(f.x2, x)), y2 = finite(f.toY, finite(f.y2, y));
     switch (f.kind) {
       case 'line':
-        if (f.width >= 12) this.lineHitbox(x, y, x2, y2, f.width, color, alpha * .45);
-        this.line(x, y, x2, y2, color, Math.min(3, finite(f.width, 1.5)), alpha); break;
-      case 'arc': this.zigzag(x, y, x2, y2, color, finite(f.width, 2), alpha, finite(f.seed, finite(f.rootId))); break;
+        if (f.width >= 12) this.lineHitbox(x, y, x2, y2, f.width, color, alpha * .25);
+        this.line(x, y, x2, y2, color, Math.min(2.5, finite(f.width, 1)), alpha * .65); break;
+      case 'arc': {
+        const travel = this.reduced ? 1 : clamp(age / .07), tx = x + (x2 - x) * travel, ty = y + (y2 - y) * travel;
+        this.zigzag(x, y, tx, ty, color, finite(f.width, 2), alpha, finite(f.seed, finite(f.rootId)));
+        if (travel >= 1) { this.glow(x2, y2, 17, color, alpha * .32); this.fillCircle(x2, y2, 3.5, '#F3F7EF', alpha * .8); }
+        break;
+      }
       case 'ring':
-        this.circle(x, y, r, color, Math.max(.7, 2 - p), alpha);
+        this.circle(x, y, r, color, Math.max(.7, 1.4 - p), alpha * .65);
         if (f.segments) this.clockRing(x, y, r, color, 1 - p, f.segments, alpha); break;
       case 'burst': {
-        const scale = this.reduced ? 1 : .65 + p * .45;
-        this.circle(x, y, r * scale, color, 2.5 - p * 2, alpha);
-        if (age < .08) this.fillCircle(x, y, r * .85, '#030611', .85 * alpha);
-        const count = this.low ? 4 : 8;
-        for (let i = 0; i < count; i++) {
-          const a = i * TAU / count + .15;
-          const inner = r * (this.reduced ? .8 : .5 + p * .45), outer = inner + (1 - p) * 14;
-          this.line(x + Math.cos(a) * inner, y + Math.sin(a) * inner, x + Math.cos(a) * outer, y + Math.sin(a) * outer, color, 1, alpha * .7);
+        // A small death is a quiet fleck. Large phenomena compress, hang, then expand.
+        if (r <= 35) {
+          const count = this.low ? 3 : 6;
+          for (let i = 0; i < count; i++) {
+            const a = i * TAU / count + x * .03, d = r * (this.reduced ? .45 : .2 + p * .85);
+            this.fillCircle(x + Math.cos(a) * d, y + Math.sin(a) * d, Math.max(.6, 1.8 - p), color, alpha * .6);
+          }
+          break;
+        }
+        const compress = p < .16, pause = p >= .16 && p < .27;
+        const outward = this.reduced ? .85 : clamp((p - .27) / .73), scale = compress ? 1 - p / .16 * .65 : pause ? .35 : .35 + outward * .7;
+        this.glow(x, y, r * (pause ? .4 : scale), color, (compress || pause ? .32 : .16) * alpha);
+        this.fillCircle(x, y, Math.max(2, (compress ? 9 - p * 25 : pause ? 5 : 5 * (1 - outward))), '#F6EBDA', alpha * .7);
+        if (!compress && !pause) {
+          this.circle(x, y, r * scale, color, 2.5 - outward * 1.8, alpha);
+          if (!this.low) this.circle(x, y, r * Math.max(.1, scale - .12), color, .8, alpha * .3);
+          for (let i = 0; i < (this.low ? 4 : 10); i++) {
+            const a = i * TAU / (this.low ? 4 : 10) + .15, d = r * scale;
+            this.line(x + Math.cos(a) * d, y + Math.sin(a) * d, x + Math.cos(a) * (d + (1 - outward) * 12), y + Math.sin(a) * (d + (1 - outward) * 12), color, 1, alpha * .5);
+          }
         }
         break;
       }
-      case 'text':
-        this.label(f.text || '', x, y - (this.reduced ? 0 : p * 14), color, finite(f.size, f.crit ? 15 : 11), 'center', alpha); break;
+      case 'discharge':
+        this.glow(x, y, r * 1.5, color, alpha * .4);
+        for (let i = 0; i < (this.low ? 3 : 5); i++) {
+          const a = i * TAU / (this.low ? 3 : 5) + .3, d = r * (this.reduced ? .7 : .3 + p * .65);
+          this.zigzag(x, y, x + Math.cos(a) * d, y + Math.sin(a) * d, color, 1, alpha * .7, i);
+        }
+        break;
+      case 'text': {
+        if (!f.crit && /^\d+$/.test(String(f.text))) {
+          const important = (this.game.enemies || []).some(e => (e.boss || e.elite || !['drifter', 'splitter'].includes(e.type)) && Math.hypot(e.x - x, e.y - y) <= finite(e.r, 12) + 15);
+          if (!important) break;
+        }
+        this.label(f.text || '', x, y - (this.reduced ? 0 : p * 9), color, finite(f.size, f.crit ? 15 : 11), 'center', alpha * (f.crit ? 1 : .8)); break;
+      }
       case 'slash': {
         const angle = finite(f.angle), length = finite(f.length, 400);
         const tx = f.toX !== undefined || f.x2 !== undefined ? x2 : x + Math.cos(angle) * length;
         const ty = f.toY !== undefined || f.y2 !== undefined ? y2 : y + Math.sin(angle) * length;
-        if (f.width) this.lineHitbox(x, y, tx, ty, f.width, color, alpha * .35);
-        this.line(x, y, tx, ty, color, Math.max(1, 3 * (1 - p)), alpha);
+        const split = this.reduced ? 1 : clamp((age - .025) / .055), width = finite(f.width, 4), dx = tx - x, dy = ty - y, distance = Math.hypot(dx, dy) || 1;
+        this.line(x, y, tx, ty, '#E7E3DA', .8, alpha);
+        if (split > 0) {
+          this.line(x, y, tx, ty, '#08080F', Math.max(.8, width * .58 * split), alpha * .85);
+          const offset = Math.min(width * .3, 10) * split, ox = -dy / distance * offset, oy = dx / distance * offset;
+          this.zigzag(x + ox, y + oy, tx + ox, ty + oy, color, 1.4, alpha * .8, 1);
+          this.zigzag(x - ox, y - oy, tx - ox, ty - oy, '#B2A6BF', .8, alpha * .6, 3);
+          const head = this.reduced ? .5 : clamp((age - .025) / .12);
+          this.glow(x + dx * head, y + dy * head, 15, color, alpha * .24);
+        }
         break;
       }
-      case 'spawn': this.polygon(x, y, r * (this.reduced ? 1 : 1.4 - p * .4), 4, color, null, Math.PI / 4, 1, alpha * .65); break;
-      case 'heal': this.glyph('exposed', x, y, color, 10, alpha); this.circle(x, y, r, color, 1, alpha); break;
+      case 'spawn':
+        this.organic(x, y, r * (this.reduced ? 1 : .6 + p * .4), color, color, x * .04, 4, alpha * .12, .8); break;
+      case 'heal': this.glow(x, y, r, color, alpha * .12); this.inwardDust(x, y, r * .7, color, age, alpha * .6); break;
       case 'hit':
-        this.line(x - 5, y - 5, x + 5, y + 5, color, 1.6, alpha);
-        this.line(x - 5, y + 5, x + 5, y - 5, color, 1.6, alpha); break;
+        this.fillCircle(x, y, 3.5, '#F7EEE1', alpha * .8);
+        this.line(x - 4, y - 3, x + 4, y + 3, color, 1.3, alpha * .6); break;
       case 'marker':
-        this.polygon(x, y, r, 4, color, f.filled ? color : null, 0, 1.8, alpha);
-        if (f.text) this.label(f.text, x, y + r + 10, color, 9, 'center', alpha); break;
+        this.glow(x, y, r * 1.2, color, alpha * .14);
+        this.organic(x, y, Math.min(r, 8), color, '#131923', x, 3, alpha * .65, 1);
+        if (f.text) this.label(f.text, x, y + r + 10, color, 11, 'center', alpha); break;
       default: break;
     }
   }
@@ -654,7 +773,7 @@ export class Renderer {
       if (e.statuses?.exposed || e.weaknessWindow > 0) {
         this.brackets(e.x, e.y, e.r + 20, C.text, 1, 2);
         this.glyph('exposed', e.x, e.y - e.r - 44, C.text, 8);
-        this.label('WEAKNESS OPEN', e.x, e.y + e.r + 50, C.text, 10, 'center');
+        this.label('WEAKNESS OPEN', e.x, e.y + e.r + 50, C.text, 11, 'center');
       }
     }
   }
@@ -669,7 +788,7 @@ export class Renderer {
       this.line(x, y, x2, y2, color, 1, .6, [5, 6]);
       const a = Math.atan2(y2 - y, x2 - x), count = Math.max(1, Math.floor(Math.hypot(x2 - x, y2 - y) / 50));
       for (let i = 0; i < count; i++) this.arrow(x + (x2 - x) * (i + .5) / count, y + (y2 - y) * (i + .5) / count, a, color, 8, .8);
-      this.label(d.label || 'WORLD CUT', (x + x2) / 2, (y + y2) / 2 - width / 2 - 13, color, 10, 'center');
+      this.label(d.label || 'WORLD CUT', (x + x2) / 2, (y + y2) / 2 - width / 2 - 13, color, 11, 'center');
     } else {
       this.fillCircle(x, y, r, color, .055);
       this.circle(x, y, r, color, 1.8, 1, 0, TAU, [8, 4]);
@@ -685,7 +804,7 @@ export class Renderer {
         const a = i * Math.PI / 2;
         this.arrow(x + Math.cos(a) * (r - 9), y + Math.sin(a) * (r - 9), a + Math.PI, color, 9);
       }
-      this.label(d.label || (d.type === 'anchor' ? 'ANCHOR BREACH' : 'INTEGRITY THREAT'), x, y - r - 17, color, 10, 'center');
+      this.label(d.label || (d.type === 'anchor' ? 'ANCHOR BREACH' : 'INTEGRITY THREAT'), x, y - r - 17, color, 11, 'center');
     }
     const remaining = finite(d.remaining, finite(d.duration) - finite(d.age));
     this.label(`${Math.max(0, remaining).toFixed(1)}s`, x, y, '#FFD0D7', 11, 'center');
@@ -696,76 +815,19 @@ export class Renderer {
     if (!cur || cur.hidden || !Number.isFinite(cur.x) || !Number.isFinite(cur.y)) return;
     if (['menu', 'results', 'ended'].includes(game.phase)) return;
     const x = cur.x, y = cur.y, hold = finite(cur.hold), charged = !!cur.down && hold >= .8;
-    const r = (charged ? 48 : 36) + finite(game.stats?.radiusBonus), available = finite(game.charges, 2) > 0;
-    const color = available ? charged ? C.impact : finite(game.worldTime) >= 480 ? '#B08CFF' : C.text : '#706282';
-    this.circle(x, y, r, color, .9, available ? .5 : .45, 0, TAU, available ? null : [3, 5]);
-    for (let i = 0; i < 4; i++) {
-      const a = i * Math.PI / 2;
-      this.line(x + Math.cos(a) * 7, y + Math.sin(a) * 7, x + Math.cos(a) * 13, y + Math.sin(a) * 13, color, 1.5, .9);
+    const available = finite(game.charges, 2) > 0, color = available ? C.text : '#7C7785';
+    // The input pointer remains small. Geometry appears only during a deliberate aim.
+    this.fillCircle(x, y, 1.8, color, .95);
+    this.line(x - 6, y - 4, x - 4, y - 4, color, .8, .7);
+    this.line(x + 4, y + 4, x + 6, y + 4, color, .8, .7);
+    if (cur.down && available && !this.preview) {
+      const r = (charged ? 48 : 36) + finite(game.stats?.radiusBonus), chargeColor = charged ? C.impact : C.text;
+      this.fillCircle(x, y, r, chargeColor, .025);
+      this.circle(x, y, r, chargeColor, 1, .6);
+      this.circle(x, y, 7, chargeColor, 1.4, .9, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(hold / .8));
+      if (charged) this.label(hold >= 1.2 ? 'FULL' : 'CHARGED', x, y - r - 11, C.impact, 11, 'center', .9);
+      if (game.heat >= 80 && charged) this.circle(x, y, 170, C.impact, 1, .4, 0, TAU, [5, 9]);
     }
-    this.circle(x, y, 5, color, 1, .9);
-    this.fillCircle(x, y, 1.6, color);
-    for (let i = 0; i < 2; i++) {
-      const start = Math.PI * .31 + i * Math.PI * .29, end = start + Math.PI * .22;
-      this.circle(x, y, 20, i < finite(game.charges) ? '#B08CFF' : '#30253F', i < finite(game.charges) ? 2.7 : 1.5, 1, start, end);
-    }
-    if (cur.down && available) {
-      this.circle(x, y, r + 5, charged ? C.impact : C.chain, 2, 1, -Math.PI / 2, -Math.PI / 2 + TAU * clamp(hold / .8));
-      if (hold >= 1.2) this.glyph('stroke', x + r + 9, y, C.impact, 7);
-      this.label(hold >= 1.2 ? 'FULL' : charged ? 'CHARGED' : 'HOLD', x, y - r - 13, charged ? C.impact : C.chain, 9, 'center');
-    }
-    if (game.heat >= 80) {
-      this.circle(x, y, 170, C.impact, 1, .65, 0, TAU, [7, 5]);
-      this.label('CONTROLLED COLLAPSE / HOLD', x, y - 183, C.impact, 10, 'center');
-    }
-    const skills = game.skills || {};
-    const armed = skills.armed;
-    if (armed) {
-      const remaining = typeof armed === 'number' ? armed : finite(armed.remaining, finite(armed.until) - this.time);
-      this.clockRing(x, y, r + 12, C.chain, clamp(remaining / 6), 12, .9, 1.5);
-      this.label('OVERCHARGE', x, y + r + 22, C.chain, 9, 'center');
-      const candidates = (game.enemies || []).filter(e => !e.dead && Math.hypot(e.x - x, e.y - y) < 180).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)).slice(0, 3);
-      for (const e of candidates) this.zigzag(x, y, e.x, e.y, C.chain, 1, .4, e.id, [4, 6]);
-    }
-    if (finite(skills.routeUntil) > this.time) {
-      this.polygon(x, y, 15, 4, C.chain, null, 0, 1.7);
-      this.clockRing(x, y, 24, C.chain, (skills.routeUntil - this.time) / 2.5, 8, .9);
-      this.label(`ROUTE / ${skills.route?.slot?.key || (skills.route?.index === 1 ? 'Q' : 'E')}`, x, y + 54, C.chain, 9, 'center');
-    }
-    const held = skills.held;
-    if (held) {
-      const slot = typeof held === 'number' ? game.skillSlots?.[held] : held.slot || game.skillSlots?.[held.index];
-      if (slot?.id === 'cut' || held.id === 'cut') {
-        const dx = x - finite(held.startX, x), dy = y - finite(held.startY, y);
-        const angle = held.heldSeconds >= .2 && Math.hypot(dx, dy) > 4 ? Math.atan2(dy, dx) : finite(skills.lastCutAngle);
-        const length = slot?.branch === 'razor' ? 460 : 400, width = slot?.branch === 'razor' ? 12 : 26;
-        const drawAim = (cx, cy, a, len) => {
-          const x1 = cx - Math.cos(a) * len / 2, y1 = cy - Math.sin(a) * len / 2, x2 = cx + Math.cos(a) * len / 2, y2 = cy + Math.sin(a) * len / 2;
-          this.lineHitbox(x1, y1, x2, y2, width, C.text, .45, [3, 6]);
-          this.line(x1, y1, x2, y2, C.text, .9, .7, [7, 5]); this.arrow(x2, y2, a, C.text, 10);
-        };
-        drawAim(x, y, angle, length);
-        if (slot?.branch === 'lattice') {
-          if (slot.evolution >= 3) drawAim(x, y, angle + Math.PI / 2, length);
-          else for (const offset of [-90, 90]) drawAim(x + Math.cos(angle) * offset, y + Math.sin(angle) * offset, angle + Math.PI / 2, 240);
-        }
-      } else if (slot?.id === 'bomb' || held.id === 'bomb') {
-        const duration = finite(held.heldSeconds, finite(held.duration, finite(held.age, hold)));
-        this.clockRing(x, y, 52, C.bomb, clamp(duration / .5), 8, .9);
-        this.label(duration >= .5 ? 'RECORD' : 'TAP / HOLD', x, y + 68, C.bomb, 9, 'center');
-        if (duration >= .5) {
-          this.circle(x, y, 110, C.bomb, 1.1, .65, 0, TAU, [5, 5]);
-          const history = skills.recordPreview || game.directHistory || [];
-          const points = history.slice(-(slot?.branch === 'cluster' ? 7 : 5)), ghostRadius = slot?.branch === 'compression' ? 22 : 30;
-          for (const [i, point] of points.entries()) {
-            this.clockRing(point.x, point.y, ghostRadius, C.bomb, 1, 8, .6, 1);
-            this.label(String(i + 1), point.x, point.y, C.bomb, 9, 'center', .8);
-          }
-        }
-      }
-    }
-    const target = (game.enemies || []).find(e => !e.dead && Math.hypot(e.x - x, e.y - y) < e.r + 9);
-    if (target) this.brackets(target.x, target.y, target.r + 5, target.type === 'channeler' ? C.danger : color, .95, 1.5);
   }
 
   edgeIndicators() {
@@ -775,7 +837,7 @@ export class Renderer {
       if (e.x >= 20 && e.x <= this.width - 20 && e.y >= 20 && e.y <= this.height - 20) continue;
       const x = clamp(e.x, 29, this.width - 29), y = clamp(e.y, 52, this.height - 52);
       this.arrow(x, y, Math.atan2(e.y - cursor.y, e.x - cursor.x), e.type === 'channeler' ? C.danger : C.swarm, 12);
-      if (e.type === 'channeler') this.label(`A${finite(e.anchorIndex) + 1}`, x, y + 14, C.danger, 8, 'center');
+      if (e.type === 'channeler') this.label(`고정점 ${finite(e.anchorIndex) + 1}`, x, y + 14, C.danger, 11, 'center');
     }
   }
 }
